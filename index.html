@@ -95,8 +95,6 @@
         }
         .pergamino:hover { transform: translateY(-3px); }
         .pergamino h3 { color: #5d4037; border-bottom: 2px solid #8d6e63; padding-bottom: 10px; font-weight: 800; }
-        .pergamino-gremio { background-color: #e1bee7; border-color: #8e44ad; }
-        .pergamino-gremio h3 { color: #4a148c; border-color: #9b59b6; }
 
         /* TORNEOS */
         .torneo-card {
@@ -150,35 +148,14 @@
         .search-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .search-bar input, .search-bar select { margin-bottom: 0; }
 
-        /* RANKING */
-        .ranking-wrapper { display: flex; gap: 30px; flex-wrap: wrap; }
-        .regentes-col { flex: 1; min-width: 300px; max-width: 400px; }
-        .fama-col { flex: 2; min-width: 300px; }
-        .rank-card { display: flex; align-items: center; gap: 25px; padding: 25px; background: #2b2018; border-bottom: 1px solid #4e342e; transition: 0.2s; }
-        .rank-card:hover { background: #35281e; transform: scale(1.01); }
-        .top-1 { border-left: 8px solid #ffd700; background: linear-gradient(90deg, rgba(255,215,0,0.15), transparent); }
-        .top-2 { border-left: 8px solid #c0c0c0; background: linear-gradient(90deg, rgba(192,192,192,0.15), transparent); }
-        .top-3 { border-left: 8px solid #cd7f32; background: linear-gradient(90deg, rgba(205,127,50,0.15), transparent); }
-        .regente-card {
-            display: flex; flex-direction: column; align-items: center; text-align: center;
-            background: #1a0f0f; border: 2px solid #daa520; margin-bottom: 20px; padding: 20px;
-            box-shadow: 0 0 20px rgba(218, 165, 32, 0.2); position: relative;
-        }
-        .regente-card::before { content: '👑'; font-size: 2em; position: absolute; top: 10px; left: 10px; }
-        
         /* BADGES */
         .rango-badge { padding: 4px 10px; border-radius: 3px; font-size: 0.8em; font-weight: bold; color: #fff; text-transform: uppercase; letter-spacing: 1px; display: inline-block; }
-        .bg-bronce { background: #cd7f32; } .bg-plata { background: #7f8c8d; } .bg-oro { background: #f1c40f; color:#3e2723; }
-        .bg-platino { background: #00cec9; color:#000; } .bg-mithril { background: #9b59b6; } .bg-mitico { background: #8e44ad; } 
-        .bg-heroe { background: #c0392b; border: 1px solid red; } .bg-registro { background: #555; }
-        .bg-maestro { background: #42200b; color: #daa520; border: 1px solid #daa520; }
         
         /* ROLES */
         .badge-lider { background: #0d2b36; color: #4dd0e1; border: 1px solid #4dd0e1; margin-left: 8px; vertical-align: text-bottom; }
         .badge-oficial { background: #3e0d0d; color: #e74c3c; border: 1px solid #e74c3c; margin-left: 8px; vertical-align: text-bottom; }
         .badge-ministro { background: #0d3e18; color: #2ecc71; border: 1px solid #2ecc71; margin-left: 8px; vertical-align: text-bottom; }
 
-        .rank-num { font-size: 2.5em; font-weight: 900; width: 60px; text-align: center; color: #5d4037; }
         .foto-perfil { width: 140px; height: 140px; object-fit: cover; border: 4px solid #daa520; display: block; margin: 0 auto; background: #000; }
         .foto-mini { width: 80px; height: 80px; object-fit: cover; border: 3px solid #5d4037; border-radius: 50%; }
 
@@ -229,12 +206,9 @@
     <nav>
         <button onclick="navegar('inicio')" id="btn-inicio" class="activo">Inicio</button>
         <button onclick="navegar('perfil')" id="btn-perfil">Mi Perfil</button>
-        <button onclick="navegar('misiones')" id="btn-misiones">Misiones</button>
-        <button onclick="navegar('misiones-gremio')" id="btn-misiones-gremio" style="display:none; color:#ae80d6; border-color:#8e44ad;">M. Gremio</button>
         <button onclick="navegar('torneos')" id="btn-torneos">Torneos</button>
         <button onclick="navegar('precios')" id="btn-precios">Precios</button>
         <button onclick="navegar('anuncios')" id="btn-anuncios">Tablón</button>
-        <button onclick="navegar('ranking')" id="btn-ranking">Ranking</button>
         <button onclick="navegar('cuentas')" id="btn-cuentas" style="display:none; color:#ffd700; border-color:#daa520;">🏛️ Cuentas</button> 
         <button onclick="navegar('registro')" id="btn-registro" style="display:none; color:#2ecc71; border-color:#27ae60;">📝 Registro</button>
         <button onclick="navegar('seguimiento')" id="btn-seguimiento" style="display:none; color:#3498db; border-color:#2980b9;">🔍 Seguimiento</button>
@@ -253,20 +227,14 @@
                 </div>
                 <div style="padding: 20px 40px 60px 40px;">
                     <div class="ornament">⚜️ • ⚜️ • ⚜️</div>
-                    <p style="font-size: 1.2em; color:#ccc; margin-bottom: 40px;">El tablón está lleno de oportunidades. La gloria espera a los valientes.</p>
+                    <p style="font-size: 1.2em; color:#ccc; margin-bottom: 40px;">El tablón está lleno de anuncios importantes. Mantente al día.</p>
                     <div id="lista-anuncios"></div>
                 </div>
             </div>
         </section>
 
         <section id="sec-perfil"><h2>👤 Expediente Personal</h2><div id="render-perfil" style="min-height: 200px;"></div></section>
-        <section id="sec-misiones"><h2>⚔️ Contratos Disponibles</h2><div id="lista-misiones" class="grid-layout"></div></section>
         
-        <section id="sec-misiones-gremio">
-            <h2 style="color:#ae80d6; border-color:#8e44ad;">📜 Misiones de Facción / Gremio</h2>
-            <div id="lista-misiones-gremio" class="grid-layout"></div>
-        </section>
-
         <section id="sec-torneos"><h2 style="color:#e74c3c; border-color:#c0392b;">🩸 Arena de Combate</h2><div id="lista-torneos" class="grid-layout"></div></section>
 
         <section id="sec-precios">
@@ -374,28 +342,16 @@
                         <thead>
                             <tr>
                                 <th>Aventurero</th>
-                                <th>Rango</th>
-                                <th>Misión Actual</th>
-                                <th>Historial</th>
+                                <th>Cargo</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-seguimiento">
-                            </tbody>
+                        </tbody>
                     </table>
                 </div>
             </div>
-            <div id="modal-asignar" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:2000; justify-content:center; align-items:center;">
-                <div class="card" style="width:400px; border:2px solid #3498db;">
-                    <h3 style="color:#3498db;">Asignar Misión</h3>
-                    <p id="asignar-nombre-usuario" style="color:#fff; font-weight:bold;"></p>
-                    <select id="select-mision-asignar" style="margin-top:10px;"></select>
-                    <div style="display:flex; gap:10px; margin-top:20px;">
-                        <button class="btn" onclick="confirmarAsignacion()" style="background:#27ae60;">Asignar</button>
-                        <button class="btn" onclick="document.getElementById('modal-asignar').style.display='none'" style="background:#c0392b;">Cancelar</button>
-                    </div>
-                </div>
-            </div>
+            
             <div id="modal-editar-aventurero" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:2001; justify-content:center; align-items:center;">
                 <div class="card" style="width:400px; border:2px solid #f39c12;">
                     <h3 style="color:#f39c12;">✏️ Editar Datos</h3>
@@ -418,43 +374,10 @@
             </div>
         </section>
 
-        <section id="sec-ranking">
-            <h2>🏆 Salón de la Fama</h2>
-            <div class="ranking-wrapper">
-                <div class="regentes-col"><h3 style="color:#daa520; text-align:center;">👑 Regentes</h3><div id="lista-regentes"></div></div>
-                <div class="fama-col"><h3 style="color:#e0d0b0; text-align:center;">⚔️ Aventureros</h3><div class="card" style="padding:0; overflow:hidden;"><div id="lista-ranking"></div></div></div>
-            </div>
-        </section>
-
         <section id="sec-admin">
             <h2 style="color:#e74c3c;">⚙️ Consola del Maestro</h2>
             <div style="display:flex; gap:20px; flex-wrap:wrap;">
                 
-                <div class="card" style="flex:1; min-width:300px;">
-                    <h3>📜 Nueva Misión / Edición</h3>
-                    <input type="text" id="m-nom" placeholder="Título">
-                    <select id="m-dif"><option value="facil">Fácil</option><option value="media">Media</option><option value="dificil">Difícil</option><option value="epica">Épica</option></select>
-                    <input type="text" id="m-req" placeholder="Requisitos">
-                    <textarea id="m-desc" placeholder="Descripción"></textarea>
-                    <input type="text" id="m-prem" placeholder="Recompensa">
-                    <div style="display:flex; gap:5px;">
-                        <button class="btn" id="btn-publicar-mision" onclick="crearMision()">Publicar</button>
-                        <button class="btn" onclick="cancelarEdicionMision()" style="background:#e74c3c; width:auto; display:none;" id="btn-cancelar-edicion">Cancelar</button>
-                    </div>
-                </div>
-
-                <div style="flex:1; min-width:300px;">
-                    <div class="card" style="border: 2px solid #8e44ad;">
-                        <h3 style="color:#ae80d6;">📜 Misiones de Gremio (Privadas)</h3>
-                        <p style="font-size:0.8em; color:#aaa;">Solo visibles por Admins, Líderes, Oficiales y Ministros.</p>
-                        <input type="text" id="mg-nom" placeholder="Título Misión Gremio">
-                        <input type="text" id="mg-req" placeholder="Requisitos">
-                        <textarea id="mg-desc" placeholder="Descripción"></textarea>
-                        <input type="text" id="mg-prem" placeholder="Recompensa">
-                        <button class="btn" onclick="crearMisionGremio()" style="background:#8e44ad; border-color:#6c3483;">Publicar Privada</button>
-                    </div>
-                </div>
-
                 <div style="flex:1; min-width:300px;">
                     <div class="card" style="border: 2px solid #c0392b;">
                         <h3 style="color:#e74c3c;">⚔️ Organizar / Editar Torneo</h3>
@@ -470,6 +393,9 @@
                              <button class="btn" onclick="cancelarEdicionTorneo()" style="background:#e74c3c; width:auto; display:none;" id="btn-cancelar-edicion-torneo">Cancelar</button>
                         </div>
                     </div>
+                    
+                </div>
+                <div style="flex:1; min-width:300px;">
                     <div class="card" style="border: 2px solid #daa520;">
                         <h3 style="color:#daa520;">📦 Gestión de Precios</h3>
                         <input type="text" id="it-nom" placeholder="Nombre del Objeto">
@@ -501,7 +427,7 @@
             <div class="card" style="overflow-x:auto;">
                 <h3>👥 Gestión de Cuentas (Todos los Usuarios)</h3>
                 <table style="width:100%; text-align:left; border-collapse:collapse;">
-                    <thead><tr><th>Avatar</th><th>Nombre</th><th>Raza</th><th>Facción</th><th>Código</th><th>Rango</th><th>Pts</th><th>Acciones</th></tr></thead>
+                    <thead><tr><th>Avatar</th><th>Nombre</th><th>Raza</th><th>Facción</th><th>Código</th><th>Acciones</th></tr></thead>
                     <tbody id="tabla-usuarios-body"></tbody>
                 </table>
             </div>
@@ -529,19 +455,14 @@
     let TREASURY_BALANCE = 0;
     
     // Variables para el sistema interno de seguimiento
-    let USUARIOS_CACHE = {}; // Unificación de usuarios y expedientes
-    let MISIONES_CACHE = {};
-    let selectedAdventurerKey = null;
-    let misionEditandoId = null; 
+    let USUARIOS_CACHE = {}; 
     let torneoEditandoId = null;
     let torneoFotoActual = "";
 
 // Editado por Willy
 
     // Mapeo de imágenes para items (locales en carpeta 'icons/')
-    // Items específicos (usa nombres exactos del catálogo)
     const iconMap = {
-
 
     // Materiales
     "Wood (Madera)": "icons/Wood.webp",
@@ -676,7 +597,7 @@
     "Onyxium Hatchet (Hacha de onyxium)": "icons/Onyxium Hatchet.webp",
     "Prisma Pickaxe (Pico de prisma)": "icons/Prisma Pickaxe.webp",
 
-    //Armas    
+    //Armas  
 
     "Crude Sword (Espada Rudimentaria)": "icons/Crude Sword.webp",
     "Crude Daggers (Dagas Rudimentarias)": "icons/Crude Daggers.webp",
@@ -752,7 +673,7 @@
     "Katana Cobalt (Katana de Cobalto)": "icons/Katana Cobalt.webp",
     "Katana Adamantite (Katana de Adamantita)": "icons/Katana Adamantite.webp",
     
-    // Armaduras    
+    // Armaduras  
 
     "Copper Helm (Yelmo de Cobre)": "icons/Copper Helm.webp",
     "Iron Helm (Yelmo de Hierro)": "icons/Iron Helm.webp",
@@ -844,15 +765,7 @@
     "Popberry Bomb (Bomba de bayas explosivas)": "icons/Popberry Bomb.webp",
     "Coin Punch (Bolsa de monedas)": "icons/Coin Punch.webp",
 
-
-    // ... Agrega más para todos los items de cargarCatalogoBase() si tienes imágenes únicas.
-    // Si no, usa el fallback por categoría abajo.
-
-
-// Fin Editado por Willy
 };
-
-
 
     // LISTA DE ADMINS (Multi-cuenta)
     const ADMINS = [
@@ -866,21 +779,6 @@
     const MAESTROS = ["Kevinasecas", "Gusitavo"];
     const ROLES_ESPECIALES = ["Líder de Facción", "Oficial de Facción", "Ministro de Facción"];
 
-    const RANGOS = [
-        {n:"Heroe", p:3000, c:"bg-heroe"}, {n:"Mitico", p:1500, c:"bg-mitico"}, 
-        {n:"Mithril", p:950, c:"bg-mithril"}, {n:"Platino", p:650, c:"bg-platino"},
-        {n:"Oro", p:350, c:"bg-oro"}, {n:"Plata", p:200, c:"bg-plata"},
-        {n:"Bronce", p:100, c:"bg-bronce"}, {n:"Registro", p:0, c:"bg-registro"}
-    ];
-    const NIVEL_NUM = { "Registro":0, "Bronce":1, "Plata":2, "Oro":3, "Platino":4, "Mithril":5, "Mitico":6, "Heroe":7 };
-    const DIFICULTAD_NIVEL = { "facil": 0, "media": 2, "dificil": 4, "epica": 5 };
-
-    function getRango(pts) { return RANGOS.find(r => pts >= r.p) || RANGOS[RANGOS.length-1]; }
-    function getVisualRango(u) {
-        if (MAESTROS.includes(u.nombre)) return { n: "Maestro de Gremio", c: "bg-maestro" };
-        return getRango(u.puntos || 0);
-    }
-    
     // --- ETIQUETAS NUEVAS ---
     function getExtraTag(u) {
         if (!u.etiqueta) return "";
@@ -951,7 +849,7 @@
                     const r = document.getElementById('reg-raza').value;
                     const f = document.getElementById('reg-faccion').value;
                     if(r && f) {
-                        db.ref('usuarios/'+nom).set({ nombre:nom, codigo:cod, raza:r, faccion:f, puntos:0, rango:"Registro", foto:"", misionActiva:"Ninguna", dificActiva:"" });
+                        db.ref('usuarios/'+nom).set({ nombre:nom, codigo:cod, raza:r, faccion:f, foto:"" });
                         setSesion(nom);
                     }
                 }
@@ -987,33 +885,12 @@
                 document.getElementById('render-perfil').innerHTML = "<div class='card' style='text-align:center'><h3>🛡️ Perfil de Administrador</h3><p>El maestro del gremio no tiene ficha de aventurero.</p></div>";
             } else {
                 if(data[usuarioActual]) {
-                    // Check if user has special role to see Guild Missions
-                    const myRole = data[usuarioActual].etiqueta || "";
-                    if(ROLES_ESPECIALES.includes(myRole)) {
-                        document.getElementById('btn-misiones-gremio').style.display = "block";
-                    }
                     renderPerfil(data[usuarioActual]);
                 }
             }
-            if(isAdmin(usuarioActual)) {
-                // Admins always see guild missions
-                 document.getElementById('btn-misiones-gremio').style.display = "block";
-            }
-
-            // Renderizar Ranking (ahora usa la misma fuente unificada)
-            renderRanking(data);
 
             // Renderizar Seguimiento (si es Admin)
             if(isAdmin(usuarioActual)) renderSeguimiento();
-        });
-
-        db.ref('misiones').on('value', snap => {
-            MISIONES_CACHE = snap.val() || {};
-            renderMisiones(snap.val() ? Object.entries(snap.val()) : []);
-        });
-        // NUEVO LISTENER MISIONES GREMIO
-        db.ref('misiones_gremio').on('value', snap => {
-            renderMisionesGremio(snap.val() ? Object.entries(snap.val()) : []);
         });
 
         db.ref('anuncios').on('value', snap => renderAnuncios(snap.val() ? Object.values(snap.val()) : []));
@@ -1126,16 +1003,12 @@
         // Verificar si ya existe para no sobrescribir datos críticos
         db.ref('usuarios/'+nom).once('value', snap => {
             if (snap.exists()) {
-                // Si existe, actualizamos solo raza y facción (y aseguramos que tenga campos de seguimiento)
                 db.ref('usuarios/'+nom).update({ raza: raz, faccion: fac });
                 alert("Usuario existente actualizado.");
             } else {
-                // Si no existe, creamos el perfil con el CÓDIGO GENERADO
                 const nuevoAventurero = {
                     nombre: nom, raza: raz, faccion: fac, 
-                    codigo: newCode, // <--- CÓDIGO DE ACCESO
-                    puntos: 0, rango:"Registro",
-                    misionActiva: "Ninguna", misionActual: null, historialMisiones: [] 
+                    codigo: newCode
                 };
                 db.ref('usuarios/'+nom).set(nuevoAventurero);
                 alert(`AVENTURERO CREADO.\n\nCÓDIGO DE ACCESO: ${newCode}\n\nEntrégaselo al jugador.`);
@@ -1152,7 +1025,7 @@
         const searchTerm = document.getElementById('search-seguimiento') ? document.getElementById('search-seguimiento').value.toLowerCase() : "";
 
         if (!USUARIOS_CACHE) {
-            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#777;'>Cargando...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='3' style='text-align:center; padding:20px; color:#777;'>Cargando...</td></tr>";
             return;
         }
 
@@ -1160,29 +1033,15 @@
         Object.entries(USUARIOS_CACHE).forEach(([key, av]) => {
             if (isAdmin(av.nombre)) return; // No mostramos al admin en seguimiento
 
-            // SAFETY CHECK: Ensure user has a name
             const userName = av.nombre || "Desconocido";
 
             if (userName.toLowerCase().includes(searchTerm)) {
                 found = true;
-                const rango = getRango(av.puntos || 0);
-                const misionNombre = av.misionActual ? av.misionActual.nombre : "Ninguna";
-                // SAFETY CHECK: Ensure history is an object/array
-                const historialCount = av.historialMisiones ? Object.keys(av.historialMisiones).length : 0;
-                
-                const btnCompletar = av.misionActual ? `<button onclick="finalizarMisionInterna('${key}')" style="background:#2ecc71; border:none; color:white; padding:5px; cursor:pointer; margin-right:5px;">✅ Completar</button>` : '';
-                const editPuntos = `<div style="display:flex; align-items:center; gap:5px;">${av.puntos || 0} <button onclick="editarPuntosInterno('${key}')" style="background:none; border:1px solid #777; color:#aaa; cursor:pointer; font-size:0.8em;">✏️</button></div>`;
-
                 tbody.innerHTML += `<tr style="border-bottom:1px solid #333;">
-                        <td style="padding:10px; color:#fff; font-weight:bold;">${userName}<br><span style="font-size:0.8em; color:#aaa;">${av.raza || "?"} | ${av.faccion || "?"}</span><br>${getExtraTag(av)}</td>
-                        <td style="padding:10px;"><span class="rango-badge ${rango.c}">${rango.n}</span><br>${editPuntos}</td>
-                        <td style="padding:10px; color:${av.misionActual?'#f1c40f':'#555'}">${misionNombre}</td>
-                        <td style="padding:10px; font-size:0.9em;">Completadas: ${historialCount}</td>
+                        <td style="padding:10px; color:#fff; font-weight:bold;">${userName}<br><span style="font-size:0.8em; color:#aaa;">${av.raza || "?"} | ${av.faccion || "?"}</span></td>
+                        <td style="padding:10px;">${getExtraTag(av) || '<span style="color:#555;">Sin cargo</span>'}</td>
                         <td style="padding:10px;">
-                            ${btnCompletar} 
-                            <button onclick="abrirAsignarMision('${key}')" style="background:#3498db; border:none; color:white; padding:5px; cursor:pointer;">📜 Asignar</button> 
                             <button onclick="abrirEditarAventurero('${key}')" style="background:#f39c12; border:none; color:white; padding:5px; cursor:pointer;">✏️ Datos</button>
-                            <button onclick="resetearHistorial('${key}')" style="background:none; border:1px solid #777; color:#aaa; cursor:pointer;">🔄 Reset</button>
                             <button onclick="borrarUser('${key}')" style="background:#c0392b; border:none; color:white; padding:5px; cursor:pointer;">🗑️</button>
                         </td>
                     </tr>`;
@@ -1190,17 +1049,7 @@
         });
 
         if(!found) {
-             tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#777;'>No se encontraron resultados.</td></tr>";
-        }
-    }
-
-    function resetearHistorial(key) {
-        if(confirm("¿Reiniciar historial de misiones y misión actual?\n(Los puntos no se borrarán)")) {
-            db.ref('usuarios/'+key).update({
-                misionActual: null,
-                misionActiva: "Ninguna",
-                historialMisiones: []
-            });
+             tbody.innerHTML = "<tr><td colspan='3' style='text-align:center; padding:20px; color:#777;'>No se encontraron resultados.</td></tr>";
         }
     }
 
@@ -1232,68 +1081,6 @@
             document.getElementById('modal-editar-aventurero').style.display = 'none';
         } else {
             alert("Rellena todos los campos.");
-        }
-    }
-
-    function editarPuntosInterno(key) {
-        const nuevos = prompt("Introduce nuevos puntos:");
-        if(nuevos !== null) db.ref('usuarios/'+key).update({ puntos: parseInt(nuevos)||0 });
-    }
-    
-    function abrirAsignarMision(key) {
-        selectedAdventurerKey = key;
-        const av = USUARIOS_CACHE[key];
-        document.getElementById('asignar-nombre-usuario').innerText = av.nombre;
-        const select = document.getElementById('select-mision-asignar');
-        select.innerHTML = '<option value="">-- Selecciona una misión --</option>';
-        Object.entries(MISIONES_CACHE).forEach(([mId, m]) => {
-            select.innerHTML += `<option value="${mId}">[${m.dificultad.toUpperCase()}] ${m.nombre}</option>`;
-        });
-        document.getElementById('modal-asignar').style.display = 'flex';
-    }
-    function confirmarAsignacion() {
-        const mId = document.getElementById('select-mision-asignar').value;
-        if(!mId) return alert("Selecciona una misión.");
-        const mision = MISIONES_CACHE[mId];
-        const aventurero = USUARIOS_CACHE[selectedAdventurerKey];
-        // SAFETY CHECK
-        const historial = aventurero.historialMisiones ? Object.values(aventurero.historialMisiones) : []; 
-
-        const rangoAv = getRango(aventurero.puntos || 0);
-        const nivelAv = NIVEL_NUM[rangoAv.n];
-        const nivelMision = DIFICULTAD_NIVEL[mision.dificultad];
-        
-        if (nivelMision > nivelAv) {
-            if(!confirm(`⚠️ ALERTA DE RANGO ⚠️\n\nEl aventurero es rango ${rangoAv.n.toUpperCase()} y la misión es ${mision.dificultad.toUpperCase()}.\nPodría ser mortal.\n\n¿Quieres asignarla de todos modos?`)) return;
-        }
-
-        if (historial.includes(mision.nombre)) {
-            const todasDeEsaDificultad = Object.values(MISIONES_CACHE).filter(m => m.dificultad === mision.dificultad).map(m => m.nombre);
-            const hechasDeEsaDificultad = historial.filter(hName => todasDeEsaDificultad.includes(hName));
-            const hechasUnicas = [...new Set(hechasDeEsaDificultad)];
-            
-            if (hechasUnicas.length < todasDeEsaDificultad.length) {
-                return alert(`⛔ BLOQUEO DE CICLO ⛔\n\nEste aventurero ya completó "${mision.nombre}".\n\nRegla: Debe completar TODAS las misiones de dificultad ${mision.dificultad.toUpperCase()} disponibles antes de poder repetir una.`);
-            } else {
-                if(!confirm(`♻️ CICLO COMPLETADO ♻️\n\nEl aventurero ha completado todas las misiones de este nivel. Se permite repetir "${mision.nombre}".\n¿Proceder?`)) return;
-            }
-        }
-        db.ref('usuarios/'+selectedAdventurerKey).update({
-            misionActual: { id: mId, nombre: mision.nombre, dificultad: mision.dificultad, premio: mision.premios },
-            misionActiva: mision.nombre // Para compatibilidad visual en perfil
-        });
-        document.getElementById('modal-asignar').style.display = 'none';
-        alert("Misión asignada correctamente.");
-    }
-    function finalizarMisionInterna(key) {
-        const av = USUARIOS_CACHE[key];
-        if(!av.misionActual) return;
-        if(confirm(`¿Confirmar que ${av.nombre} ha completado la misión "${av.misionActual.nombre}"?`)) {
-            db.ref('usuarios/'+key+'/historialMisiones').push(av.misionActual.nombre);
-            let rw = av.misionActual.dificultad==="facil"?15 : av.misionActual.dificultad==="media"?35 : av.misionActual.dificultad==="dificil"?80 : 200;
-            const nuevosPuntos = (av.puntos||0) + rw;
-            db.ref('usuarios/'+key).update({ misionActual: null, misionActiva: "Ninguna", puntos: nuevosPuntos });
-            alert(`¡Misión completada! Se han sumado ${rw} puntos.`);
         }
     }
 
@@ -1344,7 +1131,6 @@
 
 
 
-        
             let vendemos = Math.max(i.buy, i.sell);
             let compramos = Math.min(i.buy, i.sell);
             return `<div class="item-card"><div class="item-icon"><img src="${iconSrc}" alt="${i.name}"></div><h3 style="margin:0; color:#fff; font-size:1.1em;">${i.name}</h3><span style="font-size:0.8em; color:#888;">${i.cat}</span><div class="price-tag"><span class="price-sell-label">Vendemos: ${formatMoney(vendemos)}</span><span class="price-buy-label">Compramos: ${formatMoney(compramos)}</span></div></div>`;
@@ -1435,8 +1221,6 @@
             {name: "Dragon's Hearth (Corazón de dragón)", cat: "Material", buy: 10000, sell: 6000}, 
             {name: "Moneda Oscura (Moneda oscura)", cat: "Material", buy: 2000, sell: 1000},
             {name: "Empty Potion Bottle (Frasco de poción vacío)", cat: "Material", buy: 2, sell: 1}, 
-            // {name: "Essence of the Forest (Esencia del bosque)", cat: "Material", buy: 150, sell: 75},
-            // {name: "Herdera's Gem (Gema de Herdera) ", cat: "Material", buy: 120, sell: 75},
 
 
             // Alimentos
@@ -1503,7 +1287,6 @@
             {name: "Onyxium Pickaxe (Pico de onyxium)", cat: "Herramienta", buy: 272000, sell: 0}, 
             {name: "Onyxium Hatchet (Hacha de onyxium)", cat: "Herramienta", buy: 272000, sell: 0}, 
             {name: "Prisma Pickaxe (Pico de prisma)", cat: "Herramienta", buy: 50000, sell: 0}, 
-            // {name: "Endgame's Workbench (Mesa de trabajo final)", cat: "Herramienta", buy: 230, sell: 0},
 
             // Armas
 
@@ -1581,7 +1364,6 @@
             {name: "Onyxium Battleaxe (Hacha de batalla de onyxium)", cat: "Arma", buy: 305000, sell: 0}, 
             {name: "Onyxium Daggers (Dagas de onyxium)", cat: "Arma", buy: 598000, sell: 0},
             {name: "Prisma Daggers (Dagas de prisma)", cat: "Arma", buy: 510000, sell: 0},
-            // {name: "Vine-twined Daggers (Dagas de enredaderas)", cat: "Arma", buy: 180, sell: 0},
 
             // Armaduras
 
@@ -1693,9 +1475,9 @@
         const el = document.getElementById(idSpan);
         if (el.textContent === "••••••") { el.textContent = el.dataset.real; } else { el.textContent = "••••••"; }
     }
+    
     function renderPerfil(u) {
         if(!u) return;
-        const r = getVisualRango(u);
         document.getElementById('render-perfil').innerHTML = `
             <div style="display:flex; flex-wrap:wrap; gap:30px;">
                 <div class="card" style="flex:1; text-align:center; min-width:300px;">
@@ -1703,6 +1485,7 @@
                     <input type="file" id="up-foto" style="display:none" onchange="subirFoto(this)">
                     <button class="btn" style="margin-top:20px; font-size:0.8em; width:auto;" onclick="document.getElementById('up-foto').click()">Subir Retrato</button>
                     <h2 style="border:none; margin:20px 0 5px 0; color:#fff;">${u.nombre}</h2>
+                    <div style="margin-bottom:15px;">${getExtraTag(u)}</div>
                     <div style="display:flex; gap:5px; justify-content:center; align-items:center; margin-bottom:10px;">
                         <input type="text" id="edit-raza" value="${u.raza}" placeholder="Raza" style="width:40%; text-align:center; background:#1a0f0f; border:1px solid #3e2723; color:#ccc; padding:5px;">
                         <span style="color:#5d4037;">|</span>
@@ -1712,17 +1495,6 @@
                     <div style="margin-top:20px;">
                         <span style="color:#777; font-size:0.8em;">CÓDIGO DE ACCESO</span>
                         <div class="codigo-oculto"><span id="prof-code" data-real="${u.codigo}">••••••</span><button class="btn-ojo" onclick="toggleCode('prof-code')">👁️</button></div>
-                    </div>
-                </div>
-                <div style="flex:1; display:flex; flex-direction:column; gap:20px; min-width:300px;">
-                    <div class="card" style="flex:1; text-align:center;">
-                        <h3>Rango Actual</h3>
-                        <div><span class="rango-badge ${r.c}" style="font-size:2em;">${r.n}</span>${getExtraTag(u) ? `<br>${getExtraTag(u)}` : ''}</div>
-                        <div style="margin-top:15px; font-weight:bold; color:#daa520; font-size:1.5em;">${u.puntos} PTS</div>
-                    </div>
-                    <div class="card" style="flex:1; border-left: 5px solid ${u.misionActiva!=='Ninguna'?'#2ecc71':'#7f8c8d'};">
-                        <h3>Estado de Misión</h3>
-                        ${u.misionActiva !== 'Ninguna' ? `<p style="color:#2ecc71; font-weight:bold; font-size:1.4em;">${u.misionActiva}</p><p>Dificultad: <span style="color:#fff;">${u.dificActiva.toUpperCase()}</span></p>` : `<p style="color:#7f8c8d;">Sin asignación actual.</p>`}
                     </div>
                 </div>
             </div>`;
@@ -1738,96 +1510,6 @@
             alert("Raza y Facción no pueden estar vacíos.");
         }
     }
-
-    function renderRanking(usuarios) {
-        if (!usuarios) {
-             document.getElementById('lista-ranking').innerHTML = "<p>No hay aventureros registrados.</p>";
-             return;
-        }
-
-        const allUsers = Object.values(usuarios);
-        
-        // --- 1. Filtrar Regentes (Maestros) y usar sus fotos reales ---
-        const regentesData = MAESTROS.map(m => {
-            const userObj = allUsers.find(u => u.nombre === m);
-            return { name: m, foto: userObj ? userObj.foto : null };
-        });
-
-        // --- 2. Filtrar Mortales (Excluir Admin y Maestros) ---
-        const mortales = allUsers.filter(u => !isAdmin(u.nombre) && !MAESTROS.includes(u.nombre)).sort((a,b) => b.puntos - a.puntos);
-        
-        document.getElementById('lista-regentes').innerHTML = regentesData.map(m => `
-            <div class="regente-card">
-                <img src="${m.foto || 'https://via.placeholder.com/100'}" class="foto-mini">
-                <h3 style="color:#daa520; margin:10px 0 5px 0;">${m.name}</h3>
-                <span class="rango-badge bg-maestro">Maestro</span>
-            </div>
-        `).join('');
-
-        document.getElementById('lista-ranking').innerHTML = mortales.map((u, i) => {
-            const r = getVisualRango(u);
-            let claseTop = i===0 ? "top-1" : i===1 ? "top-2" : i===2 ? "top-3" : "";
-            let trofeo = i===0 ? "👑" : i===1 ? "🥈" : i===2 ? "🥉" : "#"+(i+1);
-            return `<div class="rank-card ${claseTop}"><div class="rank-num">${trofeo}</div><img src="${u.foto||'https://via.placeholder.com/50'}" class="foto-mini"><div style="flex:1;"><div style="font-weight:bold; font-size:1.5em; color:#fff;">${u.nombre} ${getExtraTag(u)}</div><div style="font-size:1em; color:#aaa;">${u.raza} - ${u.faccion}</div></div><div style="text-align:right;"><span class="rango-badge ${r.c}">${r.n}</span><div style="font-size:1.3em; font-weight:bold; margin-top:5px; color:#daa520;">${u.puntos} pts</div></div></div>`;
-        }).join('');
-    }
-
-    function renderMisiones(lista) {
-        const cont = document.getElementById('lista-misiones');
-        cont.innerHTML = lista.length ? "" : "<p style='color:#888;'>El tablón está vacío.</p>";
-        const entries = Array.isArray(lista) && lista.length > 0 && Array.isArray(lista[0]) ? lista : Object.entries(lista);
-        cont.innerHTML = entries.map(([key, m]) => {
-            if(!m) return ""; if(typeof m!=='object') m=key;
-            return `<div class="pergamino">
-                <h3>${m.nombre}</h3>
-                <p style="font-size:0.8em; color:#5d4037;"><b>Dificultad:</b> ${m.dificultad.toUpperCase()}</p>
-                <p style="font-size:0.9em; color:#3e2723;"><b>Requisitos:</b> ${m.requisitos || 'Ninguno'}</p>
-                <p style="font-style:italic;">"${m.desc}"</p>
-                <p><b>Premio:</b> ${m.premios}</p>
-                ${isAdmin(usuarioActual) ? `<div style="position:absolute; top:10px; right:10px;"><button onclick="prepararEdicionMision('${key}')" style="background:none; border:none; cursor:pointer; font-size:1.2em;">✏️</button><button onclick="borrarMision('${key}')" style="background:none; border:none; color:red; cursor:pointer; font-size:1.2em;">✖</button></div>`:''}
-            </div>`;
-        }).join('');
-    }
-
-    // --- SISTEMA EDITAR MISIONES ---
-    function prepararEdicionMision(key) {
-        db.ref('misiones/'+key).once('value', snap => {
-            const m = snap.val();
-            document.getElementById('m-nom').value = m.nombre;
-            document.getElementById('m-dif').value = m.dificultad;
-            document.getElementById('m-req').value = m.requisitos;
-            document.getElementById('m-desc').value = m.desc;
-            document.getElementById('m-prem').value = m.premios;
-            misionEditandoId = key;
-            document.getElementById('btn-publicar-mision').innerText = "💾 Guardar Cambios";
-            document.getElementById('btn-publicar-mision').style.background = "#2ecc71";
-            document.getElementById('btn-cancelar-edicion').style.display = "block";
-            navegar('admin');
-        });
-    }
-
-    function cancelarEdicionMision() {
-        misionEditandoId = null;
-        document.getElementById('m-nom').value = ""; document.getElementById('m-req').value = "";
-        document.getElementById('m-desc').value = ""; document.getElementById('m-prem').value = "";
-        document.getElementById('btn-publicar-mision').innerText = "Publicar";
-        document.getElementById('btn-publicar-mision').style.background = "linear-gradient(to bottom, #daa520, #b8860b)";
-        document.getElementById('btn-cancelar-edicion').style.display = "none";
-    }
-
-    function crearMision() {
-        const m = {
-            nombre: document.getElementById('m-nom').value, dificultad: document.getElementById('m-dif').value,
-            requisitos: document.getElementById('m-req').value, desc: document.getElementById('m-desc').value, premios: document.getElementById('m-prem').value
-        };
-        if(!m.nombre) return alert("Falta título");
-        if (misionEditandoId) {
-            db.ref('misiones/'+misionEditandoId).update(m); alert("Actualizada"); cancelarEdicionMision();
-        } else {
-            db.ref('misiones').push(m); alert("Publicada");
-        }
-    }
-    function borrarMision(key) { if(confirm("¿Borrar?")) db.ref('misiones/'+key).remove(); }
 
     // --- SISTEMA ANUNCIOS ---
     function renderAnuncios(lista) {
@@ -1911,15 +1593,12 @@
         
         Object.entries(usuarios).forEach(([key, u]) => {
             if (isAdmin(u.nombre)) return; // Ocultar cuenta admin
-            const r = getVisualRango(u); 
             tbody.innerHTML += `<tr>
                 <td><img src="${u.foto||'https://via.placeholder.com/30'}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid #daa520;"></td>
                 <td style="font-weight:bold; color:#fff;">${u.nombre} ${getExtraTag(u)}</td>
                 <td style="color:#b0a090; font-size:0.9em;">${u.raza || '-'}</td>
                 <td style="color:#b0a090; font-size:0.9em;">${u.faccion || '-'}</td>
                 <td><span id="code-${u.nombre}" data-real="${u.codigo}" style="font-family:monospace; color:#aaa;">••••••</span><button class="btn-ojo" onclick="toggleCode('code-${u.nombre}')">👁️</button></td>
-                <td><span class="rango-badge ${r.c}">${r.n}</span></td>
-                <td>${u.puntos}</td>
                 <td>
                     <button onclick="abrirEditarAventurero('${key}')" style="background:#f39c12; color:#fff; border:none; border-radius:3px; padding:8px;">✏️</button>
                     <button onclick="borrarUser('${key}')" style="background:#c0392b; color:#fff; border:none; border-radius:3px; padding:8px;">🗑️</button>
