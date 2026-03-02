@@ -114,26 +114,21 @@
         }
         .item-card:hover { border-color: #daa520; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(218, 165, 32, 0.1); }
 
-        /* Editado por Willy */
-
         .item-icon { 
-            width: 50px; /* Ajusta el tamaño según tus imágenes */
+            width: 50px; 
             height: 50px; 
             margin-bottom: 10px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            overflow: hidden; /* Para recortar si es necesario */
+            overflow: hidden; 
         }
         .item-icon img { 
             width: 100%; 
             height: 100%; 
-            object-fit: cover; /* Asegura que la imagen se ajuste sin distorsión */
-            border-radius: 5px; /* Opcional: redondea las esquinas para un look RPG */
+            object-fit: cover; 
+            border-radius: 5px; 
         }
-
-        /* Fin Editado por Willy */
-
 
         .price-tag { display: flex; flex-direction: column; gap: 5px; width: 100%; margin-top: 10px; font-size: 0.9em; border-top: 1px solid #3e2723; padding-top: 10px; }
         .price-sell-label { color: #e74c3c; font-weight: bold; } 
@@ -208,6 +203,7 @@
         <button onclick="navegar('perfil')" id="btn-perfil">Mi Perfil</button>
         <button onclick="navegar('torneos')" id="btn-torneos">Torneos</button>
         <button onclick="navegar('precios')" id="btn-precios">Precios</button>
+        <button onclick="navegar('carrito')" id="btn-carrito" style="color:#f1c40f; border-color:#f39c12;">🛒 Mi Pedido</button>
         <button onclick="navegar('anuncios')" id="btn-anuncios">Tablón</button>
         <button onclick="navegar('cuentas')" id="btn-cuentas" style="display:none; color:#ffd700; border-color:#daa520;">🏛️ Cuentas</button> 
         <button onclick="navegar('registro')" id="btn-registro" style="display:none; color:#2ecc71; border-color:#27ae60;">📝 Registro</button>
@@ -260,6 +256,21 @@
                     </select>
                 </div>
                 <div id="lista-precios" class="grid-layout"></div>
+            </div>
+        </section>
+
+        <section id="sec-carrito">
+            <h2 style="color:#f1c40f; border-color:#f39c12;">🛒 Mi Pedido de Compra</h2>
+            <div class="card">
+                <p style="color:#aaa; font-size:0.9em; margin-bottom:15px;">Añade objetos desde el Mercado. El gremio procesará tu pedido para que puedas recogerlo.</p>
+                <div id="render-carrito-items" style="overflow-x:auto;"></div>
+                <div style="text-align:right; margin-top:20px; border-top:1px solid #4e342e; padding-top:15px;">
+                    <h3 id="carrito-total" style="color:#2ecc71; margin-bottom:15px; font-size:1.8em;">Total: 0C</h3>
+                    <div style="display:inline-flex; gap:10px;">
+                        <button class="btn" style="background:#c0392b; width:auto; border-color:#922b21;" onclick="vaciarCarrito()">🗑️ Vaciar Carrito</button>
+                        <button class="btn" style="background:#27ae60; width:auto; border-color:#1e8449;" onclick="enviarPedido()">📤 Enviar Pedido al Gremio</button>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -376,6 +387,12 @@
 
         <section id="sec-admin">
             <h2 style="color:#e74c3c;">⚙️ Consola del Maestro</h2>
+            
+            <div class="card" style="border: 2px solid #3498db; border-top-width: 5px;">
+                <h3 style="color:#3498db;">📥 Pedidos Entrantes (Tienda)</h3>
+                <div id="lista-pedidos-admin" style="max-height: 500px; overflow-y: auto; padding-right:10px;"></div>
+            </div>
+
             <div style="display:flex; gap:20px; flex-wrap:wrap;">
                 
                 <div style="flex:1; min-width:300px;">
@@ -458,6 +475,9 @@
     let USUARIOS_CACHE = {}; 
     let torneoEditandoId = null;
     let torneoFotoActual = "";
+    
+    // Carrito de compras: { itemId: cantidad }
+    let CARRITO = {};
 
 // Editado por Willy
 
@@ -827,6 +847,8 @@
         document.getElementById('sec-' + id).classList.add('active');
         const btn = document.getElementById('btn-' + id);
         if(btn) btn.classList.add('activo');
+
+        if(id === 'carrito') renderCarrito();
     }
 
     function manejarLogin() {
@@ -895,6 +917,7 @@
 
         db.ref('anuncios').on('value', snap => renderAnuncios(snap.val() ? Object.values(snap.val()) : []));
         db.ref('torneos').on('value', snap => renderTorneos(snap.val() ? Object.entries(snap.val()) : []));
+        
         db.ref('items').on('value', snap => {
             const items = snap.val() ? Object.entries(snap.val()) : [];
             ITEMS_CACHE = items.map(([key, val]) => ({id: key, ...val}));
@@ -902,6 +925,13 @@
             if(isAdmin(usuarioActual)) {
                 renderAdminMercado();
                 actualizarSelectStock(); // Llenar el select del stock cuando carguen items
+            }
+        });
+
+        // Escuchar los Pedidos para los Administradores
+        db.ref('pedidos').on('value', snap => {
+            if(isAdmin(usuarioActual)) {
+                renderPedidosAdmin(snap.val() ? Object.entries(snap.val()) : []);
             }
         });
 
@@ -929,6 +959,155 @@
 
     function cerrarSesion() { localStorage.removeItem('gremio_sesion'); location.reload(); }
     if(usuarioActual) entrar();
+
+    // --- FUNCIONES DEL CARRITO DE COMPRAS ---
+
+    function agregarAlCarrito(id) {
+        const qtyInput = document.getElementById(`qty-${id}`);
+        const qty = parseInt(qtyInput.value) || 1;
+        
+        if(qty <= 0) return;
+        if(!CARRITO[id]) CARRITO[id] = 0;
+        CARRITO[id] += qty;
+        
+        alert(`Añadido al carrito (${qty} uds)`);
+        qtyInput.value = 1; // Resetear input
+    }
+
+    function renderCarrito() {
+        const cont = document.getElementById('render-carrito-items');
+        if(!cont) return;
+        
+        let total = 0;
+        let html = `<table style="width:100%; border-collapse:collapse;">
+            <thead><tr><th>Objeto</th><th>Cantidad</th><th>Subtotal</th><th>Acción</th></tr></thead>
+            <tbody>`;
+        
+        let itemsInCart = 0;
+        Object.entries(CARRITO).forEach(([id, qty]) => {
+            const item = ITEMS_CACHE.find(i => i.id === id);
+            if(item) {
+                itemsInCart++;
+                let precioUnidad = Math.max(item.buy, item.sell); // El precio al que el Gremio vende
+                let subtotal = precioUnidad * qty;
+                total += subtotal;
+                
+                html += `<tr style="border-bottom:1px solid #333;">
+                    <td style="padding:10px;">${item.name}</td>
+                    <td style="padding:10px;">
+                        <input type="number" value="${qty}" min="1" onchange="actualizarCantCarrito('${id}', this.value)" style="width:60px; padding:5px; margin:0; text-align:center;">
+                    </td>
+                    <td style="padding:10px;">${formatMoney(subtotal)}</td>
+                    <td style="padding:10px;"><button onclick="eliminarDelCarrito('${id}')" style="background:#c0392b; border:none; color:#fff; padding:5px 10px; border-radius:3px; cursor:pointer;">❌</button></td>
+                </tr>`;
+            }
+        });
+        html += `</tbody></table>`;
+        
+        if(itemsInCart === 0) {
+            cont.innerHTML = "<p style='color:#aaa; text-align:center; padding:20px;'>Tu carrito está vacío ahora mismo.</p>";
+            document.getElementById('carrito-total').innerHTML = "Total: " + formatMoney(0);
+        } else {
+            cont.innerHTML = html;
+            document.getElementById('carrito-total').innerHTML = "Total: " + formatMoney(total);
+        }
+    }
+
+    function actualizarCantCarrito(id, val) {
+        const qty = parseInt(val);
+        if(qty <= 0) eliminarDelCarrito(id);
+        else { CARRITO[id] = qty; renderCarrito(); }
+    }
+
+    function eliminarDelCarrito(id) {
+        delete CARRITO[id];
+        renderCarrito();
+    }
+
+    function vaciarCarrito() {
+        CARRITO = {};
+        renderCarrito();
+    }
+
+    function enviarPedido() {
+        if(Object.keys(CARRITO).length === 0) return alert("El carrito está vacío. ¡Añade primero algo del Mercado!");
+        
+        let itemsParaPedido = [];
+        let total = 0;
+        
+        Object.entries(CARRITO).forEach(([id, qty]) => {
+            const item = ITEMS_CACHE.find(i => i.id === id);
+            if(item) {
+                let precioUnidad = Math.max(item.buy, item.sell);
+                itemsParaPedido.push({ id: id, name: item.name, qty: qty, unitPrice: precioUnidad });
+                total += (precioUnidad * qty);
+            }
+        });
+        
+        const pedido = {
+            usuario: usuarioActual,
+            fecha: new Date().toLocaleString(),
+            items: itemsParaPedido,
+            total: total,
+            estado: "Pendiente"
+        };
+        
+        db.ref('pedidos').push(pedido);
+        alert("¡Pedido enviado correctamente al gremio! Los administradores lo procesarán pronto.");
+        vaciarCarrito();
+        navegar('precios'); // Devolver al mercado
+    }
+
+    // --- FUNCIONES DE ADMINISTRACIÓN DE PEDIDOS ---
+    
+    function renderPedidosAdmin(pedidos) {
+        const cont = document.getElementById('lista-pedidos-admin');
+        if(!cont) return;
+        
+        if(pedidos.length === 0) {
+            cont.innerHTML = "<p style='color:#aaa; padding:15px;'>No hay pedidos pendientes en la bandeja de entrada.</p>";
+            return;
+        }
+        
+        let html = "";
+        pedidos.reverse().forEach(([key, p]) => {
+            let itemsHtml = p.items.map(i => `<li><b>${i.qty}x</b> ${i.name} (${formatMoney(i.unitPrice * i.qty)})</li>`).join('');
+            
+            let bgColor = p.estado === "Pendiente" ? "#2b1a10" : "#1a251c";
+            let borderColor = p.estado === "Pendiente" ? "#e67e22" : "#27ae60";
+            
+            html += `
+            <div style="background:${bgColor}; border:1px solid ${borderColor}; padding:15px; margin-bottom:15px; border-radius:5px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+                    <div style="flex:1; min-width:250px;">
+                        <h4 style="margin:0; color:#fff;">Aventurero: <span style="color:#f1c40f;">${p.usuario}</span></h4>
+                        <p style="margin:5px 0; font-size:0.8em; color:#aaa;">${p.fecha} | Estado: <b style="color:${borderColor};">${p.estado}</b></p>
+                        <ul style="margin:10px 0; padding-left:20px; color:#ddd;">
+                            ${itemsHtml}
+                        </ul>
+                        <h4 style="margin:0; color:#2ecc71;">A cobrar: ${formatMoney(p.total)}</h4>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:5px; min-width:120px;">
+                        ${p.estado === 'Pendiente' ? `<button class="btn" style="background:#27ae60; border-color:#1e8449; padding:8px; font-size:0.8em;" onclick="completarPedido('${key}')">✅ Marcar Entregado</button>` : ''}
+                        <button class="btn" style="background:#c0392b; border-color:#922b21; padding:8px; font-size:0.8em;" onclick="borrarPedido('${key}')">🗑️ Borrar Registro</button>
+                    </div>
+                </div>
+            </div>`;
+        });
+        cont.innerHTML = html;
+    }
+
+    function completarPedido(key) {
+        if(confirm("¿Confirmar que el aventurero ha recogido y pagado este pedido?")) {
+            db.ref('pedidos/'+key).update({ estado: "Entregado" });
+        }
+    }
+    
+    function borrarPedido(key) {
+        if(confirm("¿Borrar definitivamente este pedido del registro?")) {
+            db.ref('pedidos/'+key).remove();
+        }
+    }
 
     // --- FUNCIONES STOCK ---
     function actualizarSelectStock(filterText = "") {
@@ -1129,11 +1308,21 @@
             iconSrc = categoryIcons[i.cat] || "icons/Default.png";
         }
 
-
-
             let vendemos = Math.max(i.buy, i.sell);
             let compramos = Math.min(i.buy, i.sell);
-            return `<div class="item-card"><div class="item-icon"><img src="${iconSrc}" alt="${i.name}"></div><h3 style="margin:0; color:#fff; font-size:1.1em;">${i.name}</h3><span style="font-size:0.8em; color:#888;">${i.cat}</span><div class="price-tag"><span class="price-sell-label">Vendemos: ${formatMoney(vendemos)}</span><span class="price-buy-label">Compramos: ${formatMoney(compramos)}</span></div></div>`;
+            return `<div class="item-card">
+                <div class="item-icon"><img src="${iconSrc}" alt="${i.name}"></div>
+                <h3 style="margin:0; color:#fff; font-size:1.1em;">${i.name}</h3>
+                <span style="font-size:0.8em; color:#888;">${i.cat}</span>
+                <div class="price-tag">
+                    <span class="price-sell-label">Gremi-Vende: ${formatMoney(vendemos)}</span>
+                    <span class="price-buy-label">Gremi-Compra: ${formatMoney(compramos)}</span>
+                </div>
+                <div style="display:flex; gap:5px; margin-top:10px; width:100%;">
+                    <input type="number" id="qty-${i.id}" value="1" min="1" style="width:45px; padding:5px; margin:0; text-align:center;">
+                    <button class="btn" style="padding:5px; font-size:0.8em;" onclick="agregarAlCarrito('${i.id}')">🛒 Añadir</button>
+                </div>
+            </div>`;
         }).join('');
 
         // Fin Editado por Willy
