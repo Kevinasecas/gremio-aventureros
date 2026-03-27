@@ -355,8 +355,11 @@
         let misionEditandoId = null; let usuarioAjustandoPuntos = null; let logroEditandoId = null; let usuarioEditandoLogros = null;
 
         function obtenerInicioSemana() {
-            const ahora = new Date(); const dia = ahora.getDay() || 7; 
-            ahora.setHours(0, 0, 0, 0); ahora.setDate(ahora.getDate() - dia + 1); 
+            // HUSO HORARIO UNIVERSAL (UTC) - SOLUCIONA EL CONFLICTO ENTRE PAÍSES
+            const ahora = new Date(); 
+            const dia = ahora.getUTCDay() || 7; 
+            ahora.setUTCHours(0, 0, 0, 0); 
+            ahora.setUTCDate(ahora.getUTCDate() - dia + 1); 
             return ahora.getTime();
         }
 
@@ -431,18 +434,23 @@
                     }
                 }
 
-                // --- REVISIÓN GLOBAL DE USUARIOS ---
+                // --- REVISIÓN GLOBAL DE USUARIOS CON FILTRO MATEMÁTICO ---
                 let modificado = false;
                 for (let u of usuariosDB) {
                     let necesitaGuardar = false;
+
+                    // CONVERTIR TODO A MATEMÁTICA PURA PARA EVITAR SUMAS DE TEXTO
+                    let ptsBase = parseInt(u.puntos, 10);
+                    if (isNaN(ptsBase)) { u.puntos = 0; necesitaGuardar = true; }
+                    else if (u.puntos !== ptsBase) { u.puntos = ptsBase; necesitaGuardar = true; }
+
+                    let ptsSem = parseInt(u.puntosSemanales, 10);
+                    if (isNaN(ptsSem)) { u.puntosSemanales = 0; necesitaGuardar = true; }
+                    else if (u.puntosSemanales !== ptsSem) { u.puntosSemanales = ptsSem; necesitaGuardar = true; }
                     
                     if (esSemanaNueva) { 
                         u.puntosSemanales = 0; 
                         necesitaGuardar = true; 
-                    }
-                    if (u.puntosSemanales === undefined || isNaN(u.puntosSemanales)) {
-                        u.puntosSemanales = 0;
-                        necesitaGuardar = true;
                     }
 
                     let viejoRango = u.rango; actualizarRango(u);
@@ -732,7 +740,7 @@
         // --- SEGUIMIENTO Y MISIONES ---
         function cargarTablaSeguimiento() {
             let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios')); let tbody = document.getElementById('tabla-seguimiento'); tbody.innerHTML = '';
-            usuarios.sort((a,b)=>b.puntos-a.puntos).forEach(u => {
+            usuarios.sort((a,b)=>(parseInt(b.puntos)||0)-(parseInt(a.puntos)||0)).forEach(u => {
                 let color = obtenerColorRango(u.rango); let mis = u.misionActiva ? `<span class="text-yellow-400 font-bold"><i class="fa-solid fa-scroll"></i> ${u.misionActiva.titulo}</span><br><span class="text-xs text-gray-500">${u.misionActiva.dificultad}</span>` : '<span class="text-gray-500 italic">Ninguna</span>';
                 let acc = u.misionActiva ? `<button onclick="completarMisionAventurero('${u.nombre}')" class="px-3 py-1 bg-green-900/40 text-green-400 border border-green-600 rounded text-xs font-bold w-full mb-1 hover:bg-green-800/80 transition">Aprobar</button>` : '';
                 acc += `<button onclick="abrirModalAjustarPuntos('${u.nombre}')" class="px-3 py-1 bg-blue-900/40 text-blue-400 border border-blue-600 rounded text-xs font-bold w-full mt-1 hover:bg-blue-800/80 transition">Puntos</button>`;
@@ -761,11 +769,11 @@
             if (idx === -1) return;
             
             if (!isNaN(vGlobal)) {
-                usuarios[idx].puntos = Math.max(0, usuarios[idx].puntos + vGlobal); 
+                usuarios[idx].puntos = Math.max(0, (parseInt(usuarios[idx].puntos, 10) || 0) + vGlobal); 
                 actualizarRango(usuarios[idx]);
             }
             if (!isNaN(vSemanal)) {
-                usuarios[idx].puntosSemanales = Math.max(0, usuarios[idx].puntosSemanales + vSemanal);
+                usuarios[idx].puntosSemanales = Math.max(0, (parseInt(usuarios[idx].puntosSemanales, 10) || 0) + vSemanal);
             }
             
             localStorage.setItem('gremio_usuarios', JSON.stringify(usuarios));
@@ -786,7 +794,9 @@
             let user = usuarios[idx]; if (!user.misionActiva) return;
             
             let dif = user.misionActiva.dificultad || 'Fácil'; let pts = PUNTOS_DIFICULTAD[dif] || 10;
-            user.puntos += pts; user.puntosSemanales += pts; actualizarRango(user);
+            user.puntos = (parseInt(user.puntos, 10) || 0) + pts; 
+            user.puntosSemanales = (parseInt(user.puntosSemanales, 10) || 0) + pts; 
+            actualizarRango(user);
             
             if (!user.cooldownsMisiones) user.cooldownsMisiones = {}; 
             let ahora = Date.now();
@@ -920,7 +930,10 @@
         }
 
         function cargarRankingGlobal() {
-            let uc = JSON.parse(localStorage.getItem('gremio_usuarios')||'[]').filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN').sort((a,b)=>b.puntos-a.puntos);
+            let uc = JSON.parse(localStorage.getItem('gremio_usuarios')||'[]')
+                .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN')
+                .sort((a,b) => (parseInt(b.puntos)||0) - (parseInt(a.puntos)||0));
+            
             document.getElementById('podio-global').innerHTML = uc.length === 0 ? `<div class="p-4 text-center text-gray-500 w-full">El salón del honor está vacío.</div>` : (uc[1]?generarHTMLPodio(uc[1],2,'global'):'') + (uc[0]?generarHTMLPodio(uc[0],1,'global'):'') + (uc[2]?generarHTMLPodio(uc[2],3,'global'):'');
             
             let tw = document.getElementById('wrapper-tabla-global'); let tb = document.getElementById('tabla-ranking-global'); tb.innerHTML = '';
@@ -928,7 +941,10 @@
         }
 
         function cargarRankingSemanal() {
-            let uc = JSON.parse(localStorage.getItem('gremio_usuarios')||'[]').filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN').sort((a,b)=>b.puntosSemanales-a.puntosSemanales);
+            let uc = JSON.parse(localStorage.getItem('gremio_usuarios')||'[]')
+                .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN')
+                .sort((a,b) => (parseInt(b.puntosSemanales)||0) - (parseInt(a.puntosSemanales)||0));
+            
             document.getElementById('podio-semanal').innerHTML = uc.length === 0 ? `<div class="p-4 text-center text-gray-500 w-full">Aún no hay campeones esta semana.</div>` : (uc[1]?generarHTMLPodio(uc[1],2,'semanal'):'') + (uc[0]?generarHTMLPodio(uc[0],1,'semanal'):'') + (uc[2]?generarHTMLPodio(uc[2],3,'semanal'):'');
             
             let tw = document.getElementById('wrapper-tabla-semanal'); let tb = document.getElementById('tabla-ranking-semanal'); tb.innerHTML = '';
