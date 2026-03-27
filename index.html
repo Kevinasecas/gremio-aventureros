@@ -285,7 +285,7 @@
         </div>
     </div>
 
-   <script>
+    <script>
         // ==========================================
         // CONFIGURACIÓN FIREBASE FIRESTORE
         // ==========================================
@@ -382,8 +382,12 @@
         async function inicializarNube() {
             try {
                 const semanaActualNum = obtenerInicioSemana().toString();
-                const semanaGuardadaNum = localStorage.getItem('gremio_semana_actual');
-                const esSemanaNueva = (!semanaGuardadaNum || semanaGuardadaNum !== semanaActualNum);
+                
+                // --- NUEVO SISTEMA DE SEMANA GLOBAL ---
+                const configRef = db.collection('sistema').doc('semana');
+                const configDoc = await configRef.get();
+                const semanaGuardadaNube = configDoc.exists ? configDoc.data().actual : null;
+                const esSemanaNueva = (semanaGuardadaNube !== semanaActualNum);
 
                 const [ resMisiones, resNoticias, resLogros, resUsuarios ] = await Promise.all([
                     db.collection('misiones').get(),
@@ -421,16 +425,31 @@
                     }
                 }
 
+                // --- REVISIÓN GLOBAL DE USUARIOS ---
                 let modificado = false;
                 for (let u of usuariosDB) {
-                    if (esSemanaNueva) { u.puntosSemanales = 0; modificado = true; }
+                    let necesitaGuardar = false;
+                    
+                    if (esSemanaNueva) { 
+                        u.puntosSemanales = 0; 
+                        necesitaGuardar = true; 
+                    }
+                    if (u.puntosSemanales === undefined || isNaN(u.puntosSemanales)) {
+                        u.puntosSemanales = 0;
+                        necesitaGuardar = true;
+                    }
+
                     let viejoRango = u.rango; actualizarRango(u);
-                    if (u.rango !== viejoRango) modificado = true;
-                    if(modificado) await nubeGuardarUsuario(u);
+                    if (u.rango !== viejoRango) necesitaGuardar = true;
+                    if (necesitaGuardar) await nubeGuardarUsuario(u);
+                }
+
+                // SI ERA SEMANA NUEVA, LO REGISTRAMOS EN FIREBASE PARA QUE NADIE MÁS LO BORRE
+                if (esSemanaNueva) {
+                    await configRef.set({ actual: semanaActualNum });
                 }
 
                 localStorage.setItem('gremio_usuarios', JSON.stringify(usuariosDB));
-                if (esSemanaNueva) localStorage.setItem('gremio_semana_actual', semanaActualNum);
 
                 const sesion = localStorage.getItem('gremio_sesion_actual');
                 if (sesion) {
