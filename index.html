@@ -355,7 +355,7 @@
         let misionEditandoId = null; let usuarioAjustandoPuntos = null; let logroEditandoId = null; let usuarioEditandoLogros = null;
 
         function obtenerInicioSemana() {
-            // HUSO HORARIO UNIVERSAL (UTC) - SOLUCIONA EL CONFLICTO ENTRE PAÍSES
+            // HUSO HORARIO UNIVERSAL (UTC)
             const ahora = new Date(); 
             const dia = ahora.getUTCDay() || 7; 
             ahora.setUTCHours(0, 0, 0, 0); 
@@ -392,7 +392,6 @@
             try {
                 const semanaActualNum = obtenerInicioSemana().toString();
                 
-                // --- NUEVO SISTEMA DE SEMANA GLOBAL ---
                 const configRef = db.collection('sistema').doc('semana');
                 const configDoc = await configRef.get();
                 const semanaGuardadaNube = configDoc.exists ? configDoc.data().actual : null;
@@ -423,7 +422,7 @@
                 }
 
                 if (usuariosDB.length === 0) {
-                    let uAdmin = { nombre: 'ADMIN', password: '0683843', raza: '', faccion: 'Maestro del Gremio', foto: 'https://cdn-icons-png.flaticon.com/512/847/847969.png', puntos: 0, puntosSemanales: 0, rango: 'Leyenda', rol: 'ADMIN', misionActiva: null, progresoLogros: {}, cooldownsMisiones: {}, historialMisiones: { 'Fácil': [], 'Media': [], 'Difícil': [], 'Épica': [] } };
+                    let uAdmin = { nombre: 'ADMIN', password: '0683843', raza: '', faccion: 'Maestro del Gremio', foto: 'https://cdn-icons-png.flaticon.com/512/847/847969.png', puntos: 0, puntosSemanales: 0, fechaUltimoPunto: Date.now(), fechaUltimoPuntoSemanal: Date.now(), rango: 'Leyenda', rol: 'ADMIN', misionActiva: null, progresoLogros: {}, cooldownsMisiones: {}, historialMisiones: { 'Fácil': [], 'Media': [], 'Difícil': [], 'Épica': [] } };
                     usuariosDB.push(uAdmin);
                     await nubeGuardarUsuario(uAdmin);
                 } else {
@@ -434,12 +433,11 @@
                     }
                 }
 
-                // --- REVISIÓN GLOBAL DE USUARIOS CON FILTRO MATEMÁTICO ---
+                // --- REVISIÓN GLOBAL DE USUARIOS Y SELLOS DE TIEMPO ---
                 let modificado = false;
                 for (let u of usuariosDB) {
                     let necesitaGuardar = false;
 
-                    // CONVERTIR TODO A MATEMÁTICA PURA PARA EVITAR SUMAS DE TEXTO
                     let ptsBase = parseInt(u.puntos, 10);
                     if (isNaN(ptsBase)) { u.puntos = 0; necesitaGuardar = true; }
                     else if (u.puntos !== ptsBase) { u.puntos = ptsBase; necesitaGuardar = true; }
@@ -448,8 +446,13 @@
                     if (isNaN(ptsSem)) { u.puntosSemanales = 0; necesitaGuardar = true; }
                     else if (u.puntosSemanales !== ptsSem) { u.puntosSemanales = ptsSem; necesitaGuardar = true; }
                     
+                    // Parche de seguridad: si no tienen sello de tiempo, se lo ponemos para que no rompan el ranking
+                    if (!u.fechaUltimoPunto) { u.fechaUltimoPunto = Date.now(); necesitaGuardar = true; }
+                    if (!u.fechaUltimoPuntoSemanal) { u.fechaUltimoPuntoSemanal = Date.now(); necesitaGuardar = true; }
+
                     if (esSemanaNueva) { 
                         u.puntosSemanales = 0; 
+                        u.fechaUltimoPuntoSemanal = Date.now();
                         necesitaGuardar = true; 
                     }
 
@@ -458,7 +461,6 @@
                     if (necesitaGuardar) await nubeGuardarUsuario(u);
                 }
 
-                // SI ERA SEMANA NUEVA, LO REGISTRAMOS EN FIREBASE PARA QUE NADIE MÁS LO BORRE
                 if (esSemanaNueva) {
                     await configRef.set({ actual: semanaActualNum });
                 }
@@ -524,7 +526,7 @@
             let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios'));
             if (usuarios.find(u => u.nombre.toLowerCase() === usuario.toLowerCase())) { mostrarError("Este nombre ya existe."); return; }
             
-            const nuevoUsuario = { nombre: usuario, password: password, raza: '', faccion: '', foto: 'https://cdn-icons-png.flaticon.com/512/847/847969.png', puntos: 0, puntosSemanales: 0, rango: 'E', rol: 'Aventurero', misionActiva: null, progresoLogros: {}, cooldownsMisiones: {}, historialMisiones: { 'Fácil': [], 'Media': [], 'Difícil': [], 'Épica': [] } };
+            const nuevoUsuario = { nombre: usuario, password: password, raza: '', faccion: '', foto: 'https://cdn-icons-png.flaticon.com/512/847/847969.png', puntos: 0, puntosSemanales: 0, fechaUltimoPunto: Date.now(), fechaUltimoPuntoSemanal: Date.now(), rango: 'E', rol: 'Aventurero', misionActiva: null, progresoLogros: {}, cooldownsMisiones: {}, historialMisiones: { 'Fácil': [], 'Media': [], 'Difícil': [], 'Épica': [] } };
             usuarios.push(nuevoUsuario); localStorage.setItem('gremio_usuarios', JSON.stringify(usuarios));
             
             await nubeGuardarUsuario(nuevoUsuario);
@@ -770,10 +772,12 @@
             
             if (!isNaN(vGlobal)) {
                 usuarios[idx].puntos = Math.max(0, (parseInt(usuarios[idx].puntos, 10) || 0) + vGlobal); 
+                usuarios[idx].fechaUltimoPunto = Date.now(); // SELLO TEMPORAL GLOBAL
                 actualizarRango(usuarios[idx]);
             }
             if (!isNaN(vSemanal)) {
                 usuarios[idx].puntosSemanales = Math.max(0, (parseInt(usuarios[idx].puntosSemanales, 10) || 0) + vSemanal);
+                usuarios[idx].fechaUltimoPuntoSemanal = Date.now(); // SELLO TEMPORAL SEMANAL
             }
             
             localStorage.setItem('gremio_usuarios', JSON.stringify(usuarios));
@@ -787,7 +791,7 @@
             cargarTablaSeguimiento();
         }
 
-        // --- EL NUEVO SISTEMA DE CANSANCIO GLOBAL ---
+        // --- EL NUEVO SISTEMA DE CANSANCIO GLOBAL Y SELLOS DE TIEMPO ---
         async function completarMisionAventurero(nom) {
             if (!confirm(`Confirmar completar misión a ${nom}?`)) return;
             let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios')); let idx = usuarios.findIndex(u => u.nombre === nom); if (idx === -1) return;
@@ -796,12 +800,16 @@
             let dif = user.misionActiva.dificultad || 'Fácil'; let pts = PUNTOS_DIFICULTAD[dif] || 10;
             user.puntos = (parseInt(user.puntos, 10) || 0) + pts; 
             user.puntosSemanales = (parseInt(user.puntosSemanales, 10) || 0) + pts; 
+            
+            // SELLO TEMPORAL PARA DESEMPATES
+            user.fechaUltimoPunto = Date.now();
+            user.fechaUltimoPuntoSemanal = Date.now();
+
             actualizarRango(user);
             
             if (!user.cooldownsMisiones) user.cooldownsMisiones = {}; 
             let ahora = Date.now();
             
-            // Cada dificultad aplica su tiempo exacto para todas. ¡No más farmeo!
             user.cooldownsMisiones['Fácil'] = ahora + 1200000;    // 20 minutos
             user.cooldownsMisiones['Media'] = ahora + 1800000;    // 30 minutos
             user.cooldownsMisiones['Difícil'] = ahora + 3600000;  // 60 minutos
@@ -929,10 +937,17 @@
             return `<div class="flex flex-col items-center justify-end w-28 md:w-40 animate-[fadeIn_0.5s_ease-in-out]"><div class="relative z-10 -mb-6 md:-mb-8"><img src="${u.foto||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="${tImg} rounded-full border-4 ${cBord} object-cover bg-black"><div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${cMed} bg-black/80 rounded-full px-2 py-0.5 border border-gray-800"><i class="fa-solid ${puesto===1?'fa-trophy':'fa-medal'}"></i></div></div><div class="w-full flex flex-col items-center justify-end rounded-t-xl border-t border-l border-r ${aCaj} p-2 pb-3 shadow-lg"><div class="${tTxt} font-bold text-white truncate w-full text-center fuente-gremio">${u.nombre}</div>${tipo==='global'?`<div class="${obtenerColorRango(u.rango)} text-xs md:text-sm font-bold mb-1">${u.rango}</div>`:`<div class="text-xs text-gray-500 mb-1 truncate w-full text-center">${u.faccion||'Sin facción'}</div>`}<div class="font-black text-white bg-black/60 px-2 py-1 rounded w-full text-center border border-gray-700/50 text-sm shadow-inner">${tipo==='global'?u.puntos:u.puntosSemanales} pts</div></div></div>`;
         }
 
+        // --- SISTEMA DE DESEMPATE INCORPORADO AQUÍ ---
         function cargarRankingGlobal() {
             let uc = JSON.parse(localStorage.getItem('gremio_usuarios')||'[]')
                 .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN')
-                .sort((a,b) => (parseInt(b.puntos)||0) - (parseInt(a.puntos)||0));
+                .sort((a,b) => {
+                    let ptsA = parseInt(a.puntos)||0;
+                    let ptsB = parseInt(b.puntos)||0;
+                    if (ptsA !== ptsB) return ptsB - ptsA;
+                    // En caso de empate, gana el que lo consiguió en un momento anterior (fecha menor)
+                    return (a.fechaUltimoPunto||0) - (b.fechaUltimoPunto||0);
+                });
             
             document.getElementById('podio-global').innerHTML = uc.length === 0 ? `<div class="p-4 text-center text-gray-500 w-full">El salón del honor está vacío.</div>` : (uc[1]?generarHTMLPodio(uc[1],2,'global'):'') + (uc[0]?generarHTMLPodio(uc[0],1,'global'):'') + (uc[2]?generarHTMLPodio(uc[2],3,'global'):'');
             
@@ -943,7 +958,13 @@
         function cargarRankingSemanal() {
             let uc = JSON.parse(localStorage.getItem('gremio_usuarios')||'[]')
                 .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN')
-                .sort((a,b) => (parseInt(b.puntosSemanales)||0) - (parseInt(a.puntosSemanales)||0));
+                .sort((a,b) => {
+                    let ptsA = parseInt(a.puntosSemanales)||0;
+                    let ptsB = parseInt(b.puntosSemanales)||0;
+                    if (ptsA !== ptsB) return ptsB - ptsA;
+                    // En caso de empate, gana el que lo consiguió en un momento anterior (fecha menor)
+                    return (a.fechaUltimoPuntoSemanal||0) - (b.fechaUltimoPuntoSemanal||0);
+                });
             
             document.getElementById('podio-semanal').innerHTML = uc.length === 0 ? `<div class="p-4 text-center text-gray-500 w-full">Aún no hay campeones esta semana.</div>` : (uc[1]?generarHTMLPodio(uc[1],2,'semanal'):'') + (uc[0]?generarHTMLPodio(uc[0],1,'semanal'):'') + (uc[2]?generarHTMLPodio(uc[2],3,'semanal'):'');
             
