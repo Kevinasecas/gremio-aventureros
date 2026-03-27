@@ -78,7 +78,13 @@
         <div class="panel-cristal p-6 rounded-xl w-full max-w-sm border border-blue-600/50">
             <h3 class="text-2xl text-blue-400 fuente-gremio mb-4 border-b border-blue-700/30 pb-2"><i class="fa-solid fa-calculator mr-2"></i>Ajustar Puntos</h3>
             <p class="text-gray-300 text-sm mb-4">Sumar o restar puntos a <strong id="ajuste-puntos-nombre" class="text-yellow-400"></strong>:</p>
-            <input id="input-ajuste-puntos" type="number" placeholder="Ej: 50 o -20" class="w-full p-3 mb-6 rounded text-white input-rol bg-black/50 text-center text-lg focus:border-blue-500 transition-colors">
+            
+            <label class="block text-gray-400 text-xs mb-1 uppercase tracking-wider">Puntos Globales (Totales)</label>
+            <input id="input-ajuste-puntos-global" type="number" placeholder="Ej: 50 o -20" class="w-full p-2 mb-3 rounded text-white input-rol bg-black/50 text-center text-lg focus:border-blue-500 transition-colors">
+            
+            <label class="block text-gray-400 text-xs mb-1 uppercase tracking-wider">Puntos Semanales</label>
+            <input id="input-ajuste-puntos-semanal" type="number" placeholder="Ej: 50 o -20" class="w-full p-2 mb-6 rounded text-white input-rol bg-black/50 text-center text-lg focus:border-blue-500 transition-colors">
+            
             <div class="flex justify-end gap-3">
                 <button onclick="cerrarModalAjustarPuntos()" class="px-4 py-2 bg-neutral-800 text-gray-300 border border-gray-600 rounded hover:bg-neutral-700 transition">Cancelar</button>
                 <button onclick="confirmarAjustePuntos()" class="px-4 py-2 bg-blue-900/60 border border-blue-600 text-blue-300 hover:bg-blue-800/80 rounded font-bold transition">Aplicar</button>
@@ -734,17 +740,43 @@
             });
         }
 
-        function abrirModalAjustarPuntos(nom) { usuarioAjustandoPuntos = nom; document.getElementById('ajuste-puntos-nombre').innerText = nom; document.getElementById('input-ajuste-puntos').value = ''; document.getElementById('modal-ajustar-puntos').classList.remove('hidden'); }
+        function abrirModalAjustarPuntos(nom) { 
+            usuarioAjustandoPuntos = nom; 
+            document.getElementById('ajuste-puntos-nombre').innerText = nom; 
+            document.getElementById('input-ajuste-puntos-global').value = ''; 
+            document.getElementById('input-ajuste-puntos-semanal').value = ''; 
+            document.getElementById('modal-ajustar-puntos').classList.remove('hidden'); 
+        }
         function cerrarModalAjustarPuntos() { document.getElementById('modal-ajustar-puntos').classList.add('hidden'); usuarioAjustandoPuntos = null; }
         
         async function confirmarAjustePuntos() {
-            if (!usuarioAjustandoPuntos) return; let v = parseInt(document.getElementById('input-ajuste-puntos').value, 10); if (isNaN(v)) return;
-            let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios')); let idx = usuarios.findIndex(u => u.nombre === usuarioAjustandoPuntos); if (idx === -1) return;
-            usuarios[idx].puntos = Math.max(0, usuarios[idx].puntos + v); usuarios[idx].puntosSemanales = Math.max(0, usuarios[idx].puntosSemanales + v); actualizarRango(usuarios[idx]);
+            if (!usuarioAjustandoPuntos) return; 
+            let vGlobal = parseInt(document.getElementById('input-ajuste-puntos-global').value, 10); 
+            let vSemanal = parseInt(document.getElementById('input-ajuste-puntos-semanal').value, 10); 
+            
+            if (isNaN(vGlobal) && isNaN(vSemanal)) return;
+            
+            let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios')); 
+            let idx = usuarios.findIndex(u => u.nombre === usuarioAjustandoPuntos); 
+            if (idx === -1) return;
+            
+            if (!isNaN(vGlobal)) {
+                usuarios[idx].puntos = Math.max(0, usuarios[idx].puntos + vGlobal); 
+                actualizarRango(usuarios[idx]);
+            }
+            if (!isNaN(vSemanal)) {
+                usuarios[idx].puntosSemanales = Math.max(0, usuarios[idx].puntosSemanales + vSemanal);
+            }
+            
             localStorage.setItem('gremio_usuarios', JSON.stringify(usuarios));
-            let sesion = JSON.parse(localStorage.getItem('gremio_sesion_actual')); if (sesion && sesion.nombre === usuarios[idx].nombre) { localStorage.setItem('gremio_sesion_actual', JSON.stringify(usuarios[idx])); cargarDatosPerfil(usuarios[idx]); }
+            let sesion = JSON.parse(localStorage.getItem('gremio_sesion_actual')); 
+            if (sesion && sesion.nombre === usuarios[idx].nombre) { 
+                localStorage.setItem('gremio_sesion_actual', JSON.stringify(usuarios[idx])); 
+                cargarDatosPerfil(usuarios[idx]); 
+            }
             await nubeGuardarUsuario(usuarios[idx]);
-            cerrarModalAjustarPuntos(); cargarTablaSeguimiento();
+            cerrarModalAjustarPuntos(); 
+            cargarTablaSeguimiento();
         }
 
         // --- EL NUEVO SISTEMA DE CANSANCIO GLOBAL ---
