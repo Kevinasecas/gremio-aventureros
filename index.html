@@ -285,7 +285,7 @@
         </div>
     </div>
 
-    <script>
+   <script>
         // ==========================================
         // CONFIGURACIÓN FIREBASE FIRESTORE
         // ==========================================
@@ -385,7 +385,6 @@
                 const semanaGuardadaNum = localStorage.getItem('gremio_semana_actual');
                 const esSemanaNueva = (!semanaGuardadaNum || semanaGuardadaNum !== semanaActualNum);
 
-                // Descargar todo de Firebase
                 const [ resMisiones, resNoticias, resLogros, resUsuarios ] = await Promise.all([
                     db.collection('misiones').get(),
                     db.collection('noticias').get(),
@@ -401,7 +400,6 @@
                 localStorage.setItem('gremio_misiones', JSON.stringify(misionesData));
                 localStorage.setItem('gremio_noticias', JSON.stringify(noticiasData));
 
-                // Logros por defecto si la nube está vacía
                 if (logrosData.length > 0) {
                     localStorage.setItem('gremio_logros', JSON.stringify(logrosData));
                 } else {
@@ -411,13 +409,11 @@
                     for(let l of logrosBase) await db.collection('logros').doc(l.id).set(l);
                 }
 
-                // Usuarios base y chequeo de semana
                 if (usuariosDB.length === 0) {
                     let uAdmin = { nombre: 'ADMIN', password: '0683843', raza: '', faccion: 'Maestro del Gremio', foto: 'https://cdn-icons-png.flaticon.com/512/847/847969.png', puntos: 0, puntosSemanales: 0, rango: 'Leyenda', rol: 'ADMIN', misionActiva: null, progresoLogros: {}, cooldownsMisiones: {}, historialMisiones: { 'Fácil': [], 'Media': [], 'Difícil': [], 'Épica': [] } };
                     usuariosDB.push(uAdmin);
                     await nubeGuardarUsuario(uAdmin);
                 } else {
-                    // Parche automático por si el ADMIN sigue con la clave vieja en la base de datos
                     let adminFresco = usuariosDB.find(u => u.nombre === 'ADMIN');
                     if (adminFresco && adminFresco.password !== '0683843') {
                         adminFresco.password = '0683843';
@@ -436,7 +432,6 @@
                 localStorage.setItem('gremio_usuarios', JSON.stringify(usuariosDB));
                 if (esSemanaNueva) localStorage.setItem('gremio_semana_actual', semanaActualNum);
 
-                // Comprobar sesión activa
                 const sesion = localStorage.getItem('gremio_sesion_actual');
                 if (sesion) {
                     let s = JSON.parse(sesion);
@@ -447,7 +442,6 @@
                     document.getElementById('pantalla-login').classList.remove('hidden');
                 }
 
-                // Ocultar carga
                 document.getElementById('pantalla-carga').classList.add('hidden');
 
             } catch (error) {
@@ -500,7 +494,7 @@
             const nuevoUsuario = { nombre: usuario, password: password, raza: '', faccion: '', foto: 'https://cdn-icons-png.flaticon.com/512/847/847969.png', puntos: 0, puntosSemanales: 0, rango: 'E', rol: 'Aventurero', misionActiva: null, progresoLogros: {}, cooldownsMisiones: {}, historialMisiones: { 'Fácil': [], 'Media': [], 'Difícil': [], 'Épica': [] } };
             usuarios.push(nuevoUsuario); localStorage.setItem('gremio_usuarios', JSON.stringify(usuarios));
             
-            await nubeGuardarUsuario(nuevoUsuario); // Sincroniza nube
+            await nubeGuardarUsuario(nuevoUsuario);
             alert("¡Contrato firmado! Bienvenido al gremio."); iniciarSesion();
         }
         
@@ -579,7 +573,7 @@
             if (index !== -1) {
                 let rec = document.getElementById('edit-logro-recompensa').value.trim(); logros[index].recompensa = rec || "Recompensa no establecida";
                 localStorage.setItem('gremio_logros', JSON.stringify(logros));
-                await db.collection('logros').doc(logroEditandoId).update({ recompensa: logros[index].recompensa }); // FIREBASE NUBE
+                await db.collection('logros').doc(logroEditandoId).update({ recompensa: logros[index].recompensa });
                 cerrarModalEditarLogro(); cargarCatálogoLogros();
             }
         }
@@ -591,16 +585,16 @@
             let noticias = JSON.parse(localStorage.getItem('gremio_noticias'));
             const n = { id: Date.now(), titulo, contenido, fecha: new Date().toLocaleDateString('es-ES', {day:'2-digit',month:'long',year:'numeric'}), imagen: imagenNoticiaTemporal || null };
             noticias.push(n); localStorage.setItem('gremio_noticias', JSON.stringify(noticias));
-            await db.collection('noticias').doc(n.id.toString()).set(n); // FIREBASE NUBE
+            await db.collection('noticias').doc(n.id.toString()).set(n);
             document.getElementById('noticia-titulo').value=''; document.getElementById('noticia-contenido').value=''; document.getElementById('noticia-imagen').value=''; document.getElementById('preview-noticia-imagen').classList.add('hidden'); imagenNoticiaTemporal="";
-            const msj = document.getElementById('mensaje-noticia-ok'); msj.classList.remove('hidden'); setTimeout(() => msj.classList.add('hidden'), 3000); cargarNoticias();
+            cargarNoticias();
         }
 
         async function eliminarNoticia(id) {
             if (confirm("¿Borrar noticia?")) {
                 let noticias = JSON.parse(localStorage.getItem('gremio_noticias')).filter(n => n.id !== id);
                 localStorage.setItem('gremio_noticias', JSON.stringify(noticias));
-                await db.collection('noticias').doc(id.toString()).delete(); // FIREBASE NUBE
+                await db.collection('noticias').doc(id.toString()).delete();
                 cargarNoticias();
             }
         }
@@ -611,7 +605,7 @@
             if (noticias.length === 0) { cont.innerHTML = `<div class="col-span-full p-6 bg-black/40 border border-gray-700 rounded-lg text-center"><p class="text-gray-400">Sin noticias.</p></div>`; return; }
             cont.innerHTML = '';
             [...noticias].reverse().forEach(n => {
-                let btn = esAdmin ? `<button onclick="eliminarNoticia(${n.id})" class="absolute top-2 right-2 text-red-100 bg-red-600/80 p-2 rounded-full z-10"><i class="fa-solid fa-trash"></i></button>` : '';
+                let btn = esAdmin ? `<button onclick="eliminarNoticia(${n.id})" class="absolute top-2 right-2 text-red-100 bg-red-600/80 p-2 rounded-full z-10 hover:bg-red-500 transition"><i class="fa-solid fa-trash"></i></button>` : '';
                 let img = n.imagen ? `<img src="${n.imagen}" class="w-full h-48 object-cover rounded-t-lg">` : '';
                 cont.innerHTML += `<div class="bg-black/50 border border-yellow-900/30 rounded-lg relative flex flex-col h-full overflow-hidden">${btn}${img}<div class="p-5 flex flex-col flex-grow"><h4 class="text-xl text-yellow-500 fuente-gremio font-bold pr-8">${n.titulo}</h4><span class="text-xs text-gray-500 mb-4"><i class="fa-regular fa-calendar mr-2"></i>${n.fecha}</span><p class="text-gray-300 text-sm whitespace-pre-wrap">${n.contenido}</p></div></div>`;
             });
@@ -638,14 +632,13 @@
             if (nNombre.toLowerCase() !== sesion.nombre.toLowerCase() && usuarios.find(u => u.nombre.toLowerCase() === nNombre.toLowerCase())) { alert("Nombre en uso."); return; }
             let idx = usuarios.findIndex(u => u.nombre === sesion.nombre);
             
-            // Delete old record in DB if name changed to keep it clean
             if(nNombre !== sesion.nombre) await db.collection('usuarios').doc(sesion.nombre).delete();
 
             usuarios[idx].nombre = nNombre; usuarios[idx].password = nPass; usuarios[idx].raza = document.getElementById('edit-raza').value.trim(); usuarios[idx].faccion = document.getElementById('edit-faccion').value.trim();
             if (imagenBase64Temporal !== "") usuarios[idx].foto = imagenBase64Temporal;
             localStorage.setItem('gremio_usuarios', JSON.stringify(usuarios)); localStorage.setItem('gremio_sesion_actual', JSON.stringify(usuarios[idx]));
             
-            await nubeGuardarUsuario(usuarios[idx]); // FIREBASE NUBE
+            await nubeGuardarUsuario(usuarios[idx]);
             cargarDatosPerfil(usuarios[idx]); document.getElementById('mensaje-perfil-ok').classList.remove('hidden'); setTimeout(() => document.getElementById('mensaje-perfil-ok').classList.add('hidden'), 3000);
         }
 
@@ -657,18 +650,17 @@
         }
 
         async function asignarRol() {
-            const nom = document.getElementById('admin-buscar-usuario-rol').value.trim(); const nRol = document.getElementById('admin-select-rol').value; const pMsj = document.getElementById('mensaje-rol');
+            const nom = document.getElementById('admin-buscar-usuario-rol').value.trim(); const nRol = document.getElementById('admin-select-rol').value;
             if (nom === '') return;
             let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios')); let idx = usuarios.findIndex(u => u.nombre.toLowerCase() === nom.toLowerCase());
-            if (idx === -1) { pMsj.innerHTML = "No encontrado."; pMsj.className="mt-4 text-sm bg-black/50 p-3 rounded border text-orange-400 border-orange-900"; pMsj.classList.remove('hidden'); return; }
+            if (idx === -1) { alert("Usuario no encontrado"); return; }
             usuarios[idx].rol = nRol; if (nRol === 'ADMIN') usuarios[idx].rango = 'Leyenda'; else actualizarRango(usuarios[idx]);
             localStorage.setItem('gremio_usuarios', JSON.stringify(usuarios));
             let sesion = JSON.parse(localStorage.getItem('gremio_sesion_actual'));
             if (sesion.nombre.toLowerCase() === nom.toLowerCase()) { sesion.rol = nRol; sesion.rango = usuarios[idx].rango; localStorage.setItem('gremio_sesion_actual', JSON.stringify(sesion)); cargarDatosPerfil(sesion); }
             
-            await nubeGuardarUsuario(usuarios[idx]); // FIREBASE NUBE
-            cargarUsuariosEnSelectAdmin(); document.getElementById('admin-buscar-usuario-rol').value = '';
-            pMsj.innerHTML = `Actualizado ${usuarios[idx].nombre} a ${nRol}`; pMsj.className="mt-4 text-sm bg-black/50 p-3 rounded border text-green-400 border-green-900"; pMsj.classList.remove('hidden'); setTimeout(()=>pMsj.classList.add('hidden'), 4000);
+            await nubeGuardarUsuario(usuarios[idx]);
+            cargarUsuariosEnSelectAdmin(); document.getElementById('admin-buscar-usuario-rol').value = ''; alert(`Rol de ${usuarios[idx].nombre} actualizado a ${nRol}`);
         }
 
         async function eliminarAventurero() {
@@ -677,10 +669,10 @@
             if (nom.toLowerCase() === sesion.nombre.toLowerCase() || nom === 'ADMIN') return alert("No puedes borrarte a ti mismo o al ADMIN base.");
             let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios')); let idx = usuarios.findIndex(u => u.nombre.toLowerCase() === nom.toLowerCase());
             if (idx === -1) return;
-            if (confirm(`Eliminar a ${usuarios[idx].nombre} permanentemente?`)) {
+            if (confirm(`¿Eliminar a ${usuarios[idx].nombre} permanentemente?`)) {
                 let userToDelete = usuarios[idx];
                 usuarios.splice(idx, 1); localStorage.setItem('gremio_usuarios', JSON.stringify(usuarios));
-                await db.collection('usuarios').doc(userToDelete.nombre).delete(); // FIREBASE NUBE
+                await db.collection('usuarios').doc(userToDelete.nombre).delete();
                 cargarUsuariosEnSelectAdmin(); document.getElementById('admin-buscar-cuenta-peligro').value = ''; alert("Cuenta purgada.");
             }
         }
@@ -707,7 +699,7 @@
             });
             localStorage.setItem('gremio_usuarios', JSON.stringify(usuarios));
             let sesion = JSON.parse(localStorage.getItem('gremio_sesion_actual')); if (sesion && sesion.nombre === user.nombre) localStorage.setItem('gremio_sesion_actual', JSON.stringify(user));
-            await nubeGuardarUsuario(user); // FIREBASE NUBE
+            await nubeGuardarUsuario(user);
             cerrarModalModificarLogros(); alert("Progreso modificado.");
         }
         function cerrarModalModificarLogros() { document.getElementById('modal-modificar-logros').classList.add('hidden'); usuarioEditandoLogros = null; }
@@ -717,8 +709,8 @@
             let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios')); let tbody = document.getElementById('tabla-seguimiento'); tbody.innerHTML = '';
             usuarios.sort((a,b)=>b.puntos-a.puntos).forEach(u => {
                 let color = obtenerColorRango(u.rango); let mis = u.misionActiva ? `<span class="text-yellow-400 font-bold"><i class="fa-solid fa-scroll"></i> ${u.misionActiva.titulo}</span><br><span class="text-xs text-gray-500">${u.misionActiva.dificultad}</span>` : '<span class="text-gray-500 italic">Ninguna</span>';
-                let acc = u.misionActiva ? `<button onclick="completarMisionAventurero('${u.nombre}')" class="px-3 py-1 bg-green-900/40 text-green-400 border border-green-600 rounded text-xs font-bold w-full mb-1">Aprobar</button>` : '';
-                acc += `<button onclick="abrirModalAjustarPuntos('${u.nombre}')" class="px-3 py-1 bg-blue-900/40 text-blue-400 border border-blue-600 rounded text-xs font-bold w-full mt-1">Puntos</button>`;
+                let acc = u.misionActiva ? `<button onclick="completarMisionAventurero('${u.nombre}')" class="px-3 py-1 bg-green-900/40 text-green-400 border border-green-600 rounded text-xs font-bold w-full mb-1 hover:bg-green-800/80 transition">Aprobar</button>` : '';
+                acc += `<button onclick="abrirModalAjustarPuntos('${u.nombre}')" class="px-3 py-1 bg-blue-900/40 text-blue-400 border border-blue-600 rounded text-xs font-bold w-full mt-1 hover:bg-blue-800/80 transition">Puntos</button>`;
                 tbody.innerHTML += `<tr class="border-b border-gray-800"><td class="p-4 flex gap-3"><img src="${u.foto||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="w-10 h-10 rounded-full border border-yellow-700/50 object-cover"><div><div class="font-bold text-yellow-400">${u.nombre}</div><div class="text-xs text-gray-500">${u.rol}</div></div></td><td class="p-4 text-center"><div class="${color} text-lg">${u.rango}</div><div class="text-xs text-gray-400">${u.puntos} pts</div></td><td class="p-4">${mis}</td><td class="p-4 w-36">${acc}</td></tr>`;
             });
         }
@@ -732,19 +724,27 @@
             usuarios[idx].puntos = Math.max(0, usuarios[idx].puntos + v); usuarios[idx].puntosSemanales = Math.max(0, usuarios[idx].puntosSemanales + v); actualizarRango(usuarios[idx]);
             localStorage.setItem('gremio_usuarios', JSON.stringify(usuarios));
             let sesion = JSON.parse(localStorage.getItem('gremio_sesion_actual')); if (sesion && sesion.nombre === usuarios[idx].nombre) { localStorage.setItem('gremio_sesion_actual', JSON.stringify(usuarios[idx])); cargarDatosPerfil(usuarios[idx]); }
-            await nubeGuardarUsuario(usuarios[idx]); // FIREBASE NUBE
+            await nubeGuardarUsuario(usuarios[idx]);
             cerrarModalAjustarPuntos(); cargarTablaSeguimiento();
         }
 
+        // --- EL NUEVO SISTEMA DE CANSANCIO GLOBAL ---
         async function completarMisionAventurero(nom) {
             if (!confirm(`Confirmar completar misión a ${nom}?`)) return;
             let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios')); let idx = usuarios.findIndex(u => u.nombre === nom); if (idx === -1) return;
             let user = usuarios[idx]; if (!user.misionActiva) return;
+            
             let dif = user.misionActiva.dificultad || 'Fácil'; let pts = PUNTOS_DIFICULTAD[dif] || 10;
             user.puntos += pts; user.puntosSemanales += pts; actualizarRango(user);
             
-            if (!user.cooldownsMisiones) user.cooldownsMisiones = {}; let ahora = Date.now();
-            user.cooldownsMisiones[dif] = ahora + (dif==='Fácil'?1200000 : dif==='Media'?1800000 : dif==='Difícil'?3600000 : 86400000);
+            if (!user.cooldownsMisiones) user.cooldownsMisiones = {}; 
+            let ahora = Date.now();
+            
+            // Cada dificultad aplica su tiempo exacto para todas. ¡No más farmeo!
+            user.cooldownsMisiones['Fácil'] = ahora + 1200000;    // 20 minutos
+            user.cooldownsMisiones['Media'] = ahora + 1800000;    // 30 minutos
+            user.cooldownsMisiones['Difícil'] = ahora + 3600000;  // 60 minutos
+            user.cooldownsMisiones['Épica'] = ahora + 86400000;   // 24 horas
             
             if (!user.historialMisiones) user.historialMisiones = { 'Fácil':[], 'Media':[], 'Difícil':[], 'Épica':[] };
             if (!user.historialMisiones[dif]) user.historialMisiones[dif] = [];
@@ -758,24 +758,24 @@
 
             user.misionActiva = null; localStorage.setItem('gremio_usuarios', JSON.stringify(usuarios));
             let sesion = JSON.parse(localStorage.getItem('gremio_sesion_actual')); if (sesion && sesion.nombre === user.nombre) { localStorage.setItem('gremio_sesion_actual', JSON.stringify(user)); cargarDatosPerfil(user); }
-            await nubeGuardarUsuario(user); // FIREBASE NUBE
-            cargarTablaSeguimiento(); alert(`Misión de ${user.nombre} completada.`);
+            await nubeGuardarUsuario(user);
+            cargarTablaSeguimiento(); alert(`¡Misión validada y puntos otorgados a ${user.nombre}!`);
         }
 
         async function crearMision() {
             const tit = document.getElementById('mision-titulo').value.trim(); const dif = document.getElementById('mision-dificultad').value; const rec = document.getElementById('mision-recompensa').value.trim(); const des = document.getElementById('mision-descripcion').value.trim();
             if (!tit || !des) return;
-            let misiones = JSON.parse(localStorage.getItem('gremio_misiones')); const m = { id: Date.now(), titulo: tit, dificultad: dif, recompensa: rec, descripcion: des };
+            let misiones = JSON.parse(localStorage.getItem('gremio_misiones')) || []; const m = { id: Date.now(), titulo: tit, dificultad: dif, recompensa: rec, descripcion: des };
             misiones.push(m); localStorage.setItem('gremio_misiones', JSON.stringify(misiones));
-            await db.collection('misiones').doc(m.id.toString()).set(m); // FIREBASE NUBE
-            document.getElementById('mision-titulo').value=''; document.getElementById('mision-recompensa').value=''; document.getElementById('mision-descripcion').value=''; alert("Publicada");
+            await db.collection('misiones').doc(m.id.toString()).set(m);
+            document.getElementById('mision-titulo').value=''; document.getElementById('mision-recompensa').value=''; document.getElementById('mision-descripcion').value=''; alert("Misión publicada en el tablón."); cargarMisiones();
         }
 
         async function eliminarMision(id) {
-            if (confirm("¿Retirar misión?")) {
+            if (confirm("¿Retirar misión del tablón?")) {
                 let misiones = JSON.parse(localStorage.getItem('gremio_misiones')).filter(m => m.id !== id);
                 localStorage.setItem('gremio_misiones', JSON.stringify(misiones));
-                await db.collection('misiones').doc(id.toString()).delete(); // FIREBASE NUBE
+                await db.collection('misiones').doc(id.toString()).delete();
                 cargarMisiones(); 
             }
         }
@@ -788,28 +788,33 @@
             if (idx !== -1) {
                 misiones[idx].titulo = document.getElementById('edit-mision-titulo').value.trim(); misiones[idx].dificultad = document.getElementById('edit-mision-dificultad').value; misiones[idx].recompensa = document.getElementById('edit-mision-recompensa').value.trim(); misiones[idx].descripcion = document.getElementById('edit-mision-descripcion').value.trim();
                 localStorage.setItem('gremio_misiones', JSON.stringify(misiones));
-                await db.collection('misiones').doc(misionEditandoId.toString()).set(misiones[idx]); // FIREBASE NUBE
+                await db.collection('misiones').doc(misionEditandoId.toString()).set(misiones[idx]);
                 cerrarModalEditarMision(); cargarMisiones();
             }
         }
 
         async function aceptarMision(id) {
-            let sesion = JSON.parse(localStorage.getItem('gremio_sesion_actual')); if (sesion.misionActiva) return alert("Ya tienes misión en curso.");
+            let sesion = JSON.parse(localStorage.getItem('gremio_sesion_actual')); if (sesion.misionActiva) return alert("Ya tienes un encargo en curso. Termina o abandona el actual.");
             let misiones = JSON.parse(localStorage.getItem('gremio_misiones')); let m = misiones.find(x => x.id === id); if (!m) return;
-            if (sesion.cooldownsMisiones && sesion.cooldownsMisiones[m.dificultad] && sesion.cooldownsMisiones[m.dificultad] > Date.now()) return alert(`Aún recuperándote de misiones ${m.dificultad}s.`);
-            if (sesion.historialMisiones && sesion.historialMisiones[m.dificultad] && sesion.historialMisiones[m.dificultad].includes(m.id)) return alert(`Haz otras ${m.dificultad==='Épica'?3:6} de este nivel antes de repetir.`);
+            
+            if (sesion.cooldownsMisiones && sesion.cooldownsMisiones[m.dificultad] && sesion.cooldownsMisiones[m.dificultad] > Date.now()) {
+                let faltanMinutos = Math.ceil((sesion.cooldownsMisiones[m.dificultad] - Date.now()) / 60000);
+                return alert(`Estás exhausto. Necesitas descansar aproximadamente ${faltanMinutos} minutos antes de volver a la carga.`);
+            }
+            if (sesion.historialMisiones && sesion.historialMisiones[m.dificultad] && sesion.historialMisiones[m.dificultad].includes(m.id)) return alert(`Recientemente hiciste este encargo exacto. Deja algo para el resto.`);
+            
             sesion.misionActiva = { id: m.id, titulo: m.titulo, recompensa: m.recompensa, dificultad: m.dificultad, descripcion: m.descripcion };
             await actualizarUsuarioStorage(sesion); cargarMisiones();
         }
 
         async function abandonarMision() {
-            if (confirm("¿Abandonar misión?")) { let sesion = JSON.parse(localStorage.getItem('gremio_sesion_actual')); sesion.misionActiva = null; await actualizarUsuarioStorage(sesion); cargarMisiones(); }
+            if (confirm("¿Seguro que quieres abandonar este encargo? Esto es de cobardes...")) { let sesion = JSON.parse(localStorage.getItem('gremio_sesion_actual')); sesion.misionActiva = null; await actualizarUsuarioStorage(sesion); cargarMisiones(); }
         }
 
         async function actualizarUsuarioStorage(ses) {
             let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios')); let idx = usuarios.findIndex(u => u.nombre === ses.nombre); usuarios[idx] = ses;
             localStorage.setItem('gremio_usuarios', JSON.stringify(usuarios)); localStorage.setItem('gremio_sesion_actual', JSON.stringify(ses));
-            await nubeGuardarUsuario(ses); // FIREBASE NUBE
+            await nubeGuardarUsuario(ses);
         }
 
         // --- SISTEMA DE TABLÓN ORDENADO ---
@@ -819,7 +824,7 @@
             const cont = document.getElementById('contenedor-misiones'); 
             let esAdmin = sesion && (sesion.rol === 'ADMIN' || sesion.rol === 'MOD');
             
-            if (misiones.length === 0) { cont.innerHTML = `<div class="col-span-full p-6 bg-black/40 border border-gray-700 rounded-lg text-center"><p class="text-gray-400">El tablón está vacío.</p></div>`; return; }
+            if (misiones.length === 0) { cont.innerHTML = `<div class="col-span-full p-6 bg-black/40 border border-gray-700 rounded-lg text-center"><p class="text-gray-400">El tablón está vacío. Bebe cerveza mientras esperas.</p></div>`; return; }
             cont.innerHTML = '';
 
             const pesoDif = { 'Fácil': 1, 'Media': 2, 'Difícil': 3, 'Épica': 4 };
@@ -842,9 +847,9 @@
                 let enHist = sesion && sesion.historialMisiones && sesion.historialMisiones[m.dificultad] && sesion.historialMisiones[m.dificultad].includes(m.id);
                 
                 let btnAcc = '';
-                if (sesion && sesion.misionActiva && sesion.misionActiva.id === m.id) btnAcc = `<button onclick="abandonarMision()" class="px-3 py-1.5 bg-red-900/60 border border-red-700 text-red-400 rounded text-xs font-bold uppercase hover:bg-red-800/80 transition"><i class="fa-solid fa-xmark mr-1"></i>Abandonar</button>`;
+                if (sesion && sesion.misionActiva && sesion.misionActiva.id === m.id) btnAcc = `<button onclick="abandonarMision()" class="px-3 py-1.5 bg-red-900/60 border border-red-700 text-red-400 rounded text-xs font-bold uppercase hover:bg-red-800/80 transition shadow-[0_0_8px_rgba(239,68,68,0.4)]"><i class="fa-solid fa-xmark mr-1"></i>Abandonar</button>`;
                 else if (sesion && sesion.misionActiva) btnAcc = `<button disabled class="px-3 py-1.5 bg-neutral-800 text-gray-500 rounded text-xs font-bold uppercase cursor-not-allowed"><i class="fa-solid fa-lock mr-1"></i>Ocupado</button>`;
-                else if (enCool) btnAcc = `<button disabled class="px-3 py-1.5 bg-neutral-900 text-yellow-600/80 rounded text-xs font-bold uppercase cursor-not-allowed"><i class="fa-solid fa-hourglass-half mr-1"></i>Espera ${tRes}</button>`;
+                else if (enCool) btnAcc = `<button disabled class="px-3 py-1.5 bg-neutral-900 text-yellow-600/80 rounded text-xs font-bold uppercase cursor-not-allowed"><i class="fa-solid fa-bed mr-1"></i>Descansa ${tRes}</button>`;
                 else if (enHist) btnAcc = `<button disabled class="px-3 py-1.5 bg-neutral-900 text-stone-500 rounded text-xs font-bold uppercase cursor-not-allowed"><i class="fa-solid fa-rotate-left mr-1"></i>Reciente</button>`;
                 else btnAcc = `<button onclick="aceptarMision(${m.id})" class="px-3 py-1.5 btn-medieval rounded text-xs font-bold uppercase"><i class="fa-solid fa-handshake mr-1"></i>Aceptar</button>`;
                 
@@ -859,21 +864,24 @@
             let tImg = puesto===1?'w-20 h-20 md:w-24 md:h-24':puesto===2?'w-16 h-16 md:w-20 md:h-20':'w-14 h-14 md:w-16 md:h-16';
             let tTxt = puesto===1?'text-lg md:text-xl':puesto===2?'text-base md:text-lg':'text-sm md:text-base';
             let aCaj = puesto===1?'h-40 md:h-48 bg-gradient-to-t from-yellow-900/60 to-black/40 border-yellow-600/50':puesto===2?'h-32 md:h-40 bg-gradient-to-t from-gray-600/60 to-black/40 border-gray-500/50':'h-28 md:h-32 bg-gradient-to-t from-orange-900/60 to-black/40 border-orange-700/50';
+            
             return `<div class="flex flex-col items-center justify-end w-28 md:w-40 animate-[fadeIn_0.5s_ease-in-out]"><div class="relative z-10 -mb-6 md:-mb-8"><img src="${u.foto||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="${tImg} rounded-full border-4 ${cBord} object-cover bg-black"><div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${cMed} bg-black/80 rounded-full px-2 py-0.5 border border-gray-800"><i class="fa-solid ${puesto===1?'fa-trophy':'fa-medal'}"></i></div></div><div class="w-full flex flex-col items-center justify-end rounded-t-xl border-t border-l border-r ${aCaj} p-2 pb-3 shadow-lg"><div class="${tTxt} font-bold text-white truncate w-full text-center fuente-gremio">${u.nombre}</div>${tipo==='global'?`<div class="${obtenerColorRango(u.rango)} text-xs md:text-sm font-bold mb-1">${u.rango}</div>`:`<div class="text-xs text-gray-500 mb-1 truncate w-full text-center">${u.faccion||'Sin facción'}</div>`}<div class="font-black text-white bg-black/60 px-2 py-1 rounded w-full text-center border border-gray-700/50 text-sm shadow-inner">${tipo==='global'?u.puntos:u.puntosSemanales} pts</div></div></div>`;
         }
 
         function cargarRankingGlobal() {
-            let uc = JSON.parse(localStorage.getItem('gremio_usuarios')).filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN').sort((a,b)=>b.puntos-a.puntos);
-            document.getElementById('podio-global').innerHTML = uc.length === 0 ? `<div class="p-4 text-center text-gray-500 w-full">Vacío</div>` : (uc[1]?generarHTMLPodio(uc[1],2,'global'):'') + (uc[0]?generarHTMLPodio(uc[0],1,'global'):'') + (uc[2]?generarHTMLPodio(uc[2],3,'global'):'');
+            let uc = JSON.parse(localStorage.getItem('gremio_usuarios')||'[]').filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN').sort((a,b)=>b.puntos-a.puntos);
+            document.getElementById('podio-global').innerHTML = uc.length === 0 ? `<div class="p-4 text-center text-gray-500 w-full">El salón del honor está vacío.</div>` : (uc[1]?generarHTMLPodio(uc[1],2,'global'):'') + (uc[0]?generarHTMLPodio(uc[0],1,'global'):'') + (uc[2]?generarHTMLPodio(uc[2],3,'global'):'');
+            
             let tw = document.getElementById('wrapper-tabla-global'); let tb = document.getElementById('tabla-ranking-global'); tb.innerHTML = '';
-            if (uc.length <= 3) tw.classList.add('hidden'); else { tw.classList.remove('hidden'); for(let i=3;i<uc.length;i++){ tb.innerHTML += `<tr class="border-b border-gray-800"><td class="p-4 text-center text-gray-500">#${i+1}</td><td class="p-4 flex gap-3"><img src="${uc[i].foto||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="w-10 h-10 rounded-full border border-gray-700/50 object-cover"><div><div class="font-bold text-gray-300">${uc[i].nombre}</div><div class="text-xs text-gray-500">${uc[i].faccion||'-'}</div></div></td><td class="p-4 text-center"><span class="${obtenerColorRango(uc[i].rango)}">${uc[i].rango}</span></td><td class="p-4 text-center font-bold text-white">${uc[i].puntos}</td></tr>`; } }
+            if (uc.length <= 3) tw.classList.add('hidden'); else { tw.classList.remove('hidden'); for(let i=3;i<uc.length;i++){ tb.innerHTML += `<tr class="border-b border-gray-800 hover:bg-black/40 transition"><td class="p-4 text-center text-gray-500">#${i+1}</td><td class="p-4 flex gap-3"><img src="${uc[i].foto||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="w-10 h-10 rounded-full border border-gray-700/50 object-cover"><div><div class="font-bold text-gray-300">${uc[i].nombre}</div><div class="text-xs text-gray-500">${uc[i].faccion||'-'}</div></div></td><td class="p-4 text-center"><span class="${obtenerColorRango(uc[i].rango)}">${uc[i].rango}</span></td><td class="p-4 text-center font-bold text-white">${uc[i].puntos}</td></tr>`; } }
         }
 
         function cargarRankingSemanal() {
-            let uc = JSON.parse(localStorage.getItem('gremio_usuarios')).filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN').sort((a,b)=>b.puntosSemanales-a.puntosSemanales);
-            document.getElementById('podio-semanal').innerHTML = uc.length === 0 ? `<div class="p-4 text-center text-gray-500 w-full">Vacío</div>` : (uc[1]?generarHTMLPodio(uc[1],2,'semanal'):'') + (uc[0]?generarHTMLPodio(uc[0],1,'semanal'):'') + (uc[2]?generarHTMLPodio(uc[2],3,'semanal'):'');
+            let uc = JSON.parse(localStorage.getItem('gremio_usuarios')||'[]').filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN').sort((a,b)=>b.puntosSemanales-a.puntosSemanales);
+            document.getElementById('podio-semanal').innerHTML = uc.length === 0 ? `<div class="p-4 text-center text-gray-500 w-full">Aún no hay campeones esta semana.</div>` : (uc[1]?generarHTMLPodio(uc[1],2,'semanal'):'') + (uc[0]?generarHTMLPodio(uc[0],1,'semanal'):'') + (uc[2]?generarHTMLPodio(uc[2],3,'semanal'):'');
+            
             let tw = document.getElementById('wrapper-tabla-semanal'); let tb = document.getElementById('tabla-ranking-semanal'); tb.innerHTML = '';
-            if (uc.length <= 3) tw.classList.add('hidden'); else { tw.classList.remove('hidden'); for(let i=3;i<uc.length;i++){ tb.innerHTML += `<tr class="border-b border-gray-800"><td class="p-4 text-center text-gray-500">#${i+1}</td><td class="p-4 flex gap-3"><img src="${uc[i].foto||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="w-10 h-10 rounded-full border border-gray-700/50 object-cover"><div class="font-bold text-gray-300">${uc[i].nombre}</div></td><td class="p-4 text-center text-gray-500 text-sm">${uc[i].faccion||'-'}</td><td class="p-4 text-center font-bold text-white">${uc[i].puntosSemanales}</td></tr>`; } }
+            if (uc.length <= 3) tw.classList.add('hidden'); else { tw.classList.remove('hidden'); for(let i=3;i<uc.length;i++){ tb.innerHTML += `<tr class="border-b border-gray-800 hover:bg-black/40 transition"><td class="p-4 text-center text-gray-500">#${i+1}</td><td class="p-4 flex gap-3 items-center"><img src="${uc[i].foto||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="w-10 h-10 rounded-full border border-gray-700/50 object-cover"><div class="font-bold text-gray-300">${uc[i].nombre}</div></td><td class="p-4 text-center text-gray-500 text-sm">${uc[i].faccion||'-'}</td><td class="p-4 text-center font-bold text-white">${uc[i].puntosSemanales}</td></tr>`; } }
         }
     </script>
 </body>
