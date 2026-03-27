@@ -413,9 +413,16 @@
 
                 // Usuarios base y chequeo de semana
                 if (usuariosDB.length === 0) {
-                    let uAdmin = { nombre: 'ADMIN', password: 'ADMIN', raza: '', faccion: 'Maestro del Gremio', foto: 'https://cdn-icons-png.flaticon.com/512/847/847969.png', puntos: 0, puntosSemanales: 0, rango: 'Leyenda', rol: 'ADMIN', misionActiva: null, progresoLogros: {}, cooldownsMisiones: {}, historialMisiones: { 'Fácil': [], 'Media': [], 'Difícil': [], 'Épica': [] } };
+                    let uAdmin = { nombre: 'ADMIN', password: '0683843', raza: '', faccion: 'Maestro del Gremio', foto: 'https://cdn-icons-png.flaticon.com/512/847/847969.png', puntos: 0, puntosSemanales: 0, rango: 'Leyenda', rol: 'ADMIN', misionActiva: null, progresoLogros: {}, cooldownsMisiones: {}, historialMisiones: { 'Fácil': [], 'Media': [], 'Difícil': [], 'Épica': [] } };
                     usuariosDB.push(uAdmin);
                     await nubeGuardarUsuario(uAdmin);
+                } else {
+                    // Parche automático por si el ADMIN sigue con la clave vieja en la base de datos
+                    let adminFresco = usuariosDB.find(u => u.nombre === 'ADMIN');
+                    if (adminFresco && adminFresco.password !== '0683843') {
+                        adminFresco.password = '0683843';
+                        await nubeGuardarUsuario(adminFresco);
+                    }
                 }
 
                 let modificado = false;
@@ -545,7 +552,7 @@
             const cont = document.getElementById('logros-catalogo'); let esAdmin = sesion && (sesion.rol === 'ADMIN' || sesion.rol === 'MOD'); cont.innerHTML = '';
             logros.forEach(l => {
                 let tema = obtenerTemaLogro(l.recurso);
-                let btn = esAdmin ? `<button onclick="abrirModalEditarLogro('${l.id}')" class="absolute top-3 right-3 text-white bg-black/50 p-1.5 rounded z-10"><i class="fa-solid fa-pen"></i></button>` : '';
+                let btn = esAdmin ? `<button onclick="abrirModalEditarLogro('${l.id}')" class="absolute top-3 right-3 text-white bg-black/50 p-1.5 rounded z-10 hover:text-yellow-400 transition"><i class="fa-solid fa-pen"></i></button>` : '';
                 cont.innerHTML += `<div class="bg-gradient-to-br ${tema.card} border rounded-lg p-4 relative flex flex-col overflow-hidden"><i class="fa-solid ${l.icono} absolute -bottom-4 -right-4 text-6xl opacity-5 -rotate-12 z-0"></i>${btn}<div class="flex gap-4 mb-3 z-10"><div class="w-12 h-12 rounded-full bg-neutral-900/80 border border-gray-600 flex items-center justify-center ${tema.text} text-xl"><i class="fa-solid ${l.icono}"></i></div><div class="pr-8"><h4 class="text-white font-bold">${l.nombre}</h4><span class="text-xs text-gray-400">${l.recurso}: <span class="font-bold ${tema.text}">${l.requisito}</span></span></div></div><div class="mt-auto pt-3 border-t border-gray-700/50 z-10"><span class="text-xs ${tema.text} font-bold block mb-1 uppercase">Recompensa:</span><span class="text-sm text-gray-300">${l.recompensa}</span></div></div>`;
             });
         }
@@ -805,26 +812,42 @@
             await nubeGuardarUsuario(ses); // FIREBASE NUBE
         }
 
+        // --- SISTEMA DE TABLÓN ORDENADO ---
         function cargarMisiones() {
-            let misiones = JSON.parse(localStorage.getItem('gremio_misiones')); let sesion = JSON.parse(localStorage.getItem('gremio_sesion_actual'));
-            const cont = document.getElementById('contenedor-misiones'); let esAdmin = sesion && (sesion.rol === 'ADMIN' || sesion.rol === 'MOD');
+            let misiones = JSON.parse(localStorage.getItem('gremio_misiones')) || []; 
+            let sesion = JSON.parse(localStorage.getItem('gremio_sesion_actual'));
+            const cont = document.getElementById('contenedor-misiones'); 
+            let esAdmin = sesion && (sesion.rol === 'ADMIN' || sesion.rol === 'MOD');
+            
             if (misiones.length === 0) { cont.innerHTML = `<div class="col-span-full p-6 bg-black/40 border border-gray-700 rounded-lg text-center"><p class="text-gray-400">El tablón está vacío.</p></div>`; return; }
             cont.innerHTML = '';
-            [...misiones].reverse().forEach(m => {
+
+            const pesoDif = { 'Fácil': 1, 'Media': 2, 'Difícil': 3, 'Épica': 4 };
+            let misionesOrdenadas = [...misiones].sort((a, b) => {
+                let difA = pesoDif[a.dificultad] || 5;
+                let difB = pesoDif[b.dificultad] || 5;
+                if (difA !== difB) return difA - difB;
+                return b.id - a.id; 
+            });
+
+            misionesOrdenadas.forEach(m => {
                 let colDif = m.dificultad==='Media'?'text-yellow-400':m.dificultad==='Difícil'?'text-orange-500':m.dificultad==='Épica'?'text-red-500 font-bold drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]':'text-green-400';
-                let btnAdm = esAdmin ? `<div class="absolute top-3 right-3 flex gap-3 z-10"><button onclick="abrirModalEditarMision(${m.id})" class="text-blue-500 bg-black/50 p-1.5 rounded"><i class="fa-solid fa-pen"></i></button><button onclick="eliminarMision(${m.id})" class="text-red-600 bg-black/50 p-1.5 rounded"><i class="fa-solid fa-trash"></i></button></div>` : '';
+                let btnAdm = esAdmin ? `<div class="absolute top-3 right-3 flex gap-3 z-10"><button onclick="abrirModalEditarMision(${m.id})" class="text-blue-500 bg-black/50 p-1.5 rounded hover:text-blue-400 transition"><i class="fa-solid fa-pen"></i></button><button onclick="eliminarMision(${m.id})" class="text-red-600 bg-black/50 p-1.5 rounded hover:text-red-400 transition"><i class="fa-solid fa-trash"></i></button></div>` : '';
+                
                 let enCool = false; let tRes = '';
                 if (sesion && sesion.cooldownsMisiones && sesion.cooldownsMisiones[m.dificultad]) {
                     let r = sesion.cooldownsMisiones[m.dificultad] - Date.now();
                     if (r > 0) { enCool = true; let h = Math.floor(r/3600000); let mi = Math.ceil((r%3600000)/60000); tRes = h>0?`${h}h ${mi}m`:`${mi}m`; }
                 }
                 let enHist = sesion && sesion.historialMisiones && sesion.historialMisiones[m.dificultad] && sesion.historialMisiones[m.dificultad].includes(m.id);
+                
                 let btnAcc = '';
-                if (sesion && sesion.misionActiva && sesion.misionActiva.id === m.id) btnAcc = `<button onclick="abandonarMision()" class="px-3 py-1.5 bg-red-900/60 border border-red-700 text-red-400 rounded text-xs font-bold uppercase"><i class="fa-solid fa-xmark mr-1"></i>Abandonar</button>`;
+                if (sesion && sesion.misionActiva && sesion.misionActiva.id === m.id) btnAcc = `<button onclick="abandonarMision()" class="px-3 py-1.5 bg-red-900/60 border border-red-700 text-red-400 rounded text-xs font-bold uppercase hover:bg-red-800/80 transition"><i class="fa-solid fa-xmark mr-1"></i>Abandonar</button>`;
                 else if (sesion && sesion.misionActiva) btnAcc = `<button disabled class="px-3 py-1.5 bg-neutral-800 text-gray-500 rounded text-xs font-bold uppercase cursor-not-allowed"><i class="fa-solid fa-lock mr-1"></i>Ocupado</button>`;
                 else if (enCool) btnAcc = `<button disabled class="px-3 py-1.5 bg-neutral-900 text-yellow-600/80 rounded text-xs font-bold uppercase cursor-not-allowed"><i class="fa-solid fa-hourglass-half mr-1"></i>Espera ${tRes}</button>`;
                 else if (enHist) btnAcc = `<button disabled class="px-3 py-1.5 bg-neutral-900 text-stone-500 rounded text-xs font-bold uppercase cursor-not-allowed"><i class="fa-solid fa-rotate-left mr-1"></i>Reciente</button>`;
                 else btnAcc = `<button onclick="aceptarMision(${m.id})" class="px-3 py-1.5 btn-medieval rounded text-xs font-bold uppercase"><i class="fa-solid fa-handshake mr-1"></i>Aceptar</button>`;
+                
                 cont.innerHTML += `<div class="pergamino-mision p-5 pt-8 rounded relative flex flex-col hover:border-yellow-600 transition">${btnAdm}<div class="chincheta"></div><div class="flex justify-between items-start mb-3"><h4 class="text-lg text-yellow-500 fuente-gremio font-bold pr-16">${m.titulo}</h4><span class="${colDif} text-xs uppercase"><i class="fa-solid fa-skull mr-1"></i>${m.dificultad}</span></div><p class="text-gray-300 text-sm mb-5 flex-grow italic">"${m.descripcion}"</p><div class="border-t border-yellow-900/50 pt-3 mt-auto flex justify-between items-center"><span class="text-yellow-500 text-sm font-bold"><i class="fa-solid fa-star mr-1"></i>${PUNTOS_DIFICULTAD[m.dificultad]||10} Pts${m.recompensa?' | Extra: '+m.recompensa:''}</span>${btnAcc}</div></div>`;
             });
         }
