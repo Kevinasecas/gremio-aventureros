@@ -247,19 +247,6 @@
                     </div>
                 </div>
 
-                <div class="bg-black/40 border border-purple-700/50 p-6 rounded-lg mt-8">
-                    <h4 class="text-xl text-purple-500 mb-6 fuente-gremio border-b border-gray-700 pb-2"><i class="fa-solid fa-gem mr-2"></i>Recompensas de Logros</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
-                        <div class="md:col-span-2">
-                            <label class="block text-gray-400 text-sm mb-1">Seleccionar Logro</label>
-                            <select id="admin-select-logro" class="w-full p-2.5 rounded text-white input-rol bg-neutral-900 focus:border-purple-500"></select>
-                        </div>
-                        <div>
-                            <button onclick="abrirEdicionLogroDesdeAdmin()" class="w-full px-6 py-2.5 bg-purple-900/60 border border-purple-700 text-purple-300 rounded font-bold hover:bg-purple-800 transition"><i class="fa-solid fa-pen mr-2"></i>Editar Recompensa</button>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="bg-black/40 border border-red-700/50 p-6 rounded-lg mt-8">
                     <h4 class="text-xl text-red-500 mb-6 fuente-gremio border-b border-gray-700 pb-2"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Zona de Peligro</h4>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
@@ -591,7 +578,6 @@
             if (vista === 'inicio') cargarNoticias(); 
             if (vista === 'admin') { 
                 cargarUsuariosEnSelectAdmin(); 
-                cargarLogrosEnSelectAdmin(); 
                 document.getElementById('display-admin-password').classList.add('hidden'); 
                 document.getElementById('admin-buscar-password').value = ''; 
             } 
@@ -618,10 +604,29 @@
         }
 
         function cargarCatálogoLogros() {
-            let logros = JSON.parse(localStorage.getItem('gremio_logros')); let sesion = JSON.parse(localStorage.getItem('gremio_sesion_actual'));
-            const cont = document.getElementById('logros-catalogo'); let esAdmin = sesion && (sesion.rol === 'ADMIN' || sesion.rol === 'MOD'); cont.innerHTML = '';
+            let logros = JSON.parse(localStorage.getItem('gremio_logros')) || []; 
+            let sesion = JSON.parse(localStorage.getItem('gremio_sesion_actual'));
+            const cont = document.getElementById('logros-catalogo'); 
+            let esAdmin = sesion && (sesion.rol === 'ADMIN' || sesion.rol === 'MOD'); 
+            cont.innerHTML = '';
+
+            // --- EL NUEVO SISTEMA DE ORDENACIÓN DE LOGROS ---
+            const ordenRecursos = DATA_BRUTA.map(c => c.categoria);
+            logros.sort((a, b) => {
+                // Primero agruparlos por su recurso (Iron Ore, Gold Ore...)
+                let indexA = ordenRecursos.indexOf(a.recurso);
+                let indexB = ordenRecursos.indexOf(b.recurso);
+                if (indexA !== indexB) return indexA - indexB;
+                
+                // Si son del mismo recurso, ordenarlos por cantidad de menor a mayor
+                let reqA = parseInt((a.requisito || "0").replace(/\./g, ''), 10);
+                let reqB = parseInt((b.requisito || "0").replace(/\./g, ''), 10);
+                return reqA - reqB;
+            });
+
             logros.forEach(l => {
                 let tema = obtenerTemaLogro(l.recurso);
+                // El lapicero para editar se queda exclusivamente aquí en el catálogo
                 let btn = esAdmin ? `<button onclick="abrirModalEditarLogro('${l.id}')" class="absolute top-3 right-3 text-white bg-black/50 p-1.5 rounded z-10 hover:text-yellow-400 transition"><i class="fa-solid fa-pen"></i></button>` : '';
                 cont.innerHTML += `<div class="bg-gradient-to-br ${tema.card} border rounded-lg p-4 relative flex flex-col overflow-hidden"><i class="fa-solid ${l.icono} absolute -bottom-4 -right-4 text-6xl opacity-5 -rotate-12 z-0"></i>${btn}<div class="flex gap-4 mb-3 z-10"><div class="w-12 h-12 rounded-full bg-neutral-900/80 border border-gray-600 flex items-center justify-center ${tema.text} text-xl"><i class="fa-solid ${l.icono}"></i></div><div class="pr-8"><h4 class="text-white font-bold">${l.nombre}</h4><span class="text-xs text-gray-400">${l.recurso}: <span class="font-bold ${tema.text}">${l.requisito}</span></span></div></div><div class="mt-auto pt-3 border-t border-gray-700/50 z-10"><span class="text-xs ${tema.text} font-bold block mb-1 uppercase">Recompensa:</span><span class="text-sm text-gray-300">${l.recompensa}</span></div></div>`;
             });
@@ -652,7 +657,6 @@
                 await db.collection('logros').doc(logroEditandoId).update({ recompensa: logros[index].recompensa });
                 cerrarModalEditarLogro(); 
                 cargarCatálogoLogros();
-                cargarLogrosEnSelectAdmin(); // Refrescar el select de la consola
             }
         }
 
@@ -720,18 +724,11 @@
             cargarDatosPerfil(usuarios[idx]); document.getElementById('mensaje-perfil-ok').classList.remove('hidden'); setTimeout(() => document.getElementById('mensaje-perfil-ok').classList.add('hidden'), 3000);
         }
 
-        // --- ADMIN: ROLES, CONTRASEÑAS Y LOGROS ---
+        // --- ADMIN: ROLES Y CONTRASEÑAS ---
         function cargarUsuariosEnSelectAdmin() {
             let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios')); let html = '';
             usuarios.sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u => html += `<option value="${u.nombre}">Rol actual: ${u.rol}</option>`);
             document.getElementById('lista-usuarios-admin').innerHTML = html;
-        }
-
-        function cargarLogrosEnSelectAdmin() {
-            let logros = JSON.parse(localStorage.getItem('gremio_logros')) || [];
-            let html = '<option value="">-- Elige un logro para editar --</option>';
-            logros.forEach(l => { html += `<option value="${l.id}">${l.recurso} - ${l.nombre} (Req: ${l.requisito})</option>`; });
-            document.getElementById('admin-select-logro').innerHTML = html;
         }
 
         function verContrasenaAdmin() {
@@ -744,12 +741,6 @@
             display.classList.remove('hidden');
             if (u) { display.innerHTML = `<i class="fa-solid fa-unlock mr-2"></i>Clave: <span class="text-white">${u.password}</span>`; } 
             else { display.innerHTML = `<i class="fa-solid fa-circle-xmark text-red-500 mr-2"></i>Aventurero no encontrado`; }
-        }
-
-        function abrirEdicionLogroDesdeAdmin() {
-            const id = document.getElementById('admin-select-logro').value;
-            if (!id) return alert("Por favor, selecciona un logro del desplegable primero.");
-            abrirModalEditarLogro(id);
         }
 
         async function asignarRol() {
