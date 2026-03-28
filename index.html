@@ -231,6 +231,35 @@
                     </div>
                 </div>
 
+                <div class="bg-black/40 border border-blue-700/50 p-6 rounded-lg mt-8">
+                    <h4 class="text-xl text-blue-500 mb-6 fuente-gremio border-b border-gray-700 pb-2"><i class="fa-solid fa-key mr-2"></i>Recuperar Contraseña</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
+                        <div>
+                            <label class="block text-gray-400 text-sm mb-1">Aventurero</label>
+                            <input id="admin-buscar-password" list="lista-usuarios-admin" class="w-full p-2.5 rounded text-white input-rol bg-neutral-900 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <button onclick="verContrasenaAdmin()" class="w-full px-6 py-2.5 bg-blue-900/60 border border-blue-700 text-blue-300 rounded font-bold hover:bg-blue-800 transition"><i class="fa-solid fa-eye mr-2"></i>Ver Clave</button>
+                        </div>
+                        <div>
+                            <p id="display-admin-password" class="text-yellow-400 font-bold text-lg text-center bg-black/50 p-2 rounded hidden border border-yellow-600/50 shadow-inner"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-black/40 border border-purple-700/50 p-6 rounded-lg mt-8">
+                    <h4 class="text-xl text-purple-500 mb-6 fuente-gremio border-b border-gray-700 pb-2"><i class="fa-solid fa-gem mr-2"></i>Recompensas de Logros</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
+                        <div class="md:col-span-2">
+                            <label class="block text-gray-400 text-sm mb-1">Seleccionar Logro</label>
+                            <select id="admin-select-logro" class="w-full p-2.5 rounded text-white input-rol bg-neutral-900 focus:border-purple-500"></select>
+                        </div>
+                        <div>
+                            <button onclick="abrirEdicionLogroDesdeAdmin()" class="w-full px-6 py-2.5 bg-purple-900/60 border border-purple-700 text-purple-300 rounded font-bold hover:bg-purple-800 transition"><i class="fa-solid fa-pen mr-2"></i>Editar Recompensa</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="bg-black/40 border border-red-700/50 p-6 rounded-lg mt-8">
                     <h4 class="text-xl text-red-500 mb-6 fuente-gremio border-b border-gray-700 pb-2"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Zona de Peligro</h4>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
@@ -446,7 +475,6 @@
                     if (isNaN(ptsSem)) { u.puntosSemanales = 0; necesitaGuardar = true; }
                     else if (u.puntosSemanales !== ptsSem) { u.puntosSemanales = ptsSem; necesitaGuardar = true; }
                     
-                    // Parche de seguridad: si no tienen sello de tiempo, se lo ponemos para que no rompan el ranking
                     if (!u.fechaUltimoPunto) { u.fechaUltimoPunto = Date.now(); necesitaGuardar = true; }
                     if (!u.fechaUltimoPuntoSemanal) { u.fechaUltimoPuntoSemanal = Date.now(); necesitaGuardar = true; }
 
@@ -559,7 +587,20 @@
 
         function cambiarVista(vista) {
             ['inicio','perfil','misiones','ranking-global','ranking-semanal','logros','admin','seguimiento'].forEach(v => document.getElementById('vista-'+v).classList.add('hidden'));
-            if (vista === 'inicio') cargarNoticias(); if (vista === 'admin') cargarUsuariosEnSelectAdmin(); if (vista === 'seguimiento') cargarTablaSeguimiento(); if (vista === 'misiones') cargarMisiones(); if (vista === 'ranking-global') cargarRankingGlobal(); if (vista === 'ranking-semanal') cargarRankingSemanal(); if (vista === 'logros') cambiarSubVistaLogros('personales');
+            
+            if (vista === 'inicio') cargarNoticias(); 
+            if (vista === 'admin') { 
+                cargarUsuariosEnSelectAdmin(); 
+                cargarLogrosEnSelectAdmin(); 
+                document.getElementById('display-admin-password').classList.add('hidden'); 
+                document.getElementById('admin-buscar-password').value = ''; 
+            } 
+            if (vista === 'seguimiento') cargarTablaSeguimiento(); 
+            if (vista === 'misiones') cargarMisiones(); 
+            if (vista === 'ranking-global') cargarRankingGlobal(); 
+            if (vista === 'ranking-semanal') cargarRankingSemanal(); 
+            if (vista === 'logros') cambiarSubVistaLogros('personales');
+            
             document.getElementById('vista-' + vista).classList.remove('hidden');
         }
 
@@ -609,7 +650,9 @@
                 let rec = document.getElementById('edit-logro-recompensa').value.trim(); logros[index].recompensa = rec || "Recompensa no establecida";
                 localStorage.setItem('gremio_logros', JSON.stringify(logros));
                 await db.collection('logros').doc(logroEditandoId).update({ recompensa: logros[index].recompensa });
-                cerrarModalEditarLogro(); cargarCatálogoLogros();
+                cerrarModalEditarLogro(); 
+                cargarCatálogoLogros();
+                cargarLogrosEnSelectAdmin(); // Refrescar el select de la consola
             }
         }
 
@@ -677,11 +720,36 @@
             cargarDatosPerfil(usuarios[idx]); document.getElementById('mensaje-perfil-ok').classList.remove('hidden'); setTimeout(() => document.getElementById('mensaje-perfil-ok').classList.add('hidden'), 3000);
         }
 
-        // --- ADMIN ---
+        // --- ADMIN: ROLES, CONTRASEÑAS Y LOGROS ---
         function cargarUsuariosEnSelectAdmin() {
             let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios')); let html = '';
             usuarios.sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u => html += `<option value="${u.nombre}">Rol actual: ${u.rol}</option>`);
             document.getElementById('lista-usuarios-admin').innerHTML = html;
+        }
+
+        function cargarLogrosEnSelectAdmin() {
+            let logros = JSON.parse(localStorage.getItem('gremio_logros')) || [];
+            let html = '<option value="">-- Elige un logro para editar --</option>';
+            logros.forEach(l => { html += `<option value="${l.id}">${l.recurso} - ${l.nombre} (Req: ${l.requisito})</option>`; });
+            document.getElementById('admin-select-logro').innerHTML = html;
+        }
+
+        function verContrasenaAdmin() {
+            const nom = document.getElementById('admin-buscar-password').value.trim();
+            const display = document.getElementById('display-admin-password');
+            if (!nom) { display.classList.add('hidden'); return; }
+            let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios'));
+            let u = usuarios.find(x => x.nombre.toLowerCase() === nom.toLowerCase());
+            
+            display.classList.remove('hidden');
+            if (u) { display.innerHTML = `<i class="fa-solid fa-unlock mr-2"></i>Clave: <span class="text-white">${u.password}</span>`; } 
+            else { display.innerHTML = `<i class="fa-solid fa-circle-xmark text-red-500 mr-2"></i>Aventurero no encontrado`; }
+        }
+
+        function abrirEdicionLogroDesdeAdmin() {
+            const id = document.getElementById('admin-select-logro').value;
+            if (!id) return alert("Por favor, selecciona un logro del desplegable primero.");
+            abrirModalEditarLogro(id);
         }
 
         async function asignarRol() {
@@ -772,12 +840,12 @@
             
             if (!isNaN(vGlobal)) {
                 usuarios[idx].puntos = Math.max(0, (parseInt(usuarios[idx].puntos, 10) || 0) + vGlobal); 
-                usuarios[idx].fechaUltimoPunto = Date.now(); // SELLO TEMPORAL GLOBAL
+                usuarios[idx].fechaUltimoPunto = Date.now();
                 actualizarRango(usuarios[idx]);
             }
             if (!isNaN(vSemanal)) {
                 usuarios[idx].puntosSemanales = Math.max(0, (parseInt(usuarios[idx].puntosSemanales, 10) || 0) + vSemanal);
-                usuarios[idx].fechaUltimoPuntoSemanal = Date.now(); // SELLO TEMPORAL SEMANAL
+                usuarios[idx].fechaUltimoPuntoSemanal = Date.now();
             }
             
             localStorage.setItem('gremio_usuarios', JSON.stringify(usuarios));
@@ -801,7 +869,6 @@
             user.puntos = (parseInt(user.puntos, 10) || 0) + pts; 
             user.puntosSemanales = (parseInt(user.puntosSemanales, 10) || 0) + pts; 
             
-            // SELLO TEMPORAL PARA DESEMPATES
             user.fechaUltimoPunto = Date.now();
             user.fechaUltimoPuntoSemanal = Date.now();
 
@@ -937,7 +1004,6 @@
             return `<div class="flex flex-col items-center justify-end w-28 md:w-40 animate-[fadeIn_0.5s_ease-in-out]"><div class="relative z-10 -mb-6 md:-mb-8"><img src="${u.foto||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="${tImg} rounded-full border-4 ${cBord} object-cover bg-black"><div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${cMed} bg-black/80 rounded-full px-2 py-0.5 border border-gray-800"><i class="fa-solid ${puesto===1?'fa-trophy':'fa-medal'}"></i></div></div><div class="w-full flex flex-col items-center justify-end rounded-t-xl border-t border-l border-r ${aCaj} p-2 pb-3 shadow-lg"><div class="${tTxt} font-bold text-white truncate w-full text-center fuente-gremio">${u.nombre}</div>${tipo==='global'?`<div class="${obtenerColorRango(u.rango)} text-xs md:text-sm font-bold mb-1">${u.rango}</div>`:`<div class="text-xs text-gray-500 mb-1 truncate w-full text-center">${u.faccion||'Sin facción'}</div>`}<div class="font-black text-white bg-black/60 px-2 py-1 rounded w-full text-center border border-gray-700/50 text-sm shadow-inner">${tipo==='global'?u.puntos:u.puntosSemanales} pts</div></div></div>`;
         }
 
-        // --- SISTEMA DE DESEMPATE INCORPORADO AQUÍ ---
         function cargarRankingGlobal() {
             let uc = JSON.parse(localStorage.getItem('gremio_usuarios')||'[]')
                 .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN')
@@ -945,7 +1011,6 @@
                     let ptsA = parseInt(a.puntos)||0;
                     let ptsB = parseInt(b.puntos)||0;
                     if (ptsA !== ptsB) return ptsB - ptsA;
-                    // En caso de empate, gana el que lo consiguió en un momento anterior (fecha menor)
                     return (a.fechaUltimoPunto||0) - (b.fechaUltimoPunto||0);
                 });
             
@@ -962,7 +1027,6 @@
                     let ptsA = parseInt(a.puntosSemanales)||0;
                     let ptsB = parseInt(b.puntosSemanales)||0;
                     if (ptsA !== ptsB) return ptsB - ptsA;
-                    // En caso de empate, gana el que lo consiguió en un momento anterior (fecha menor)
                     return (a.fechaUltimoPuntoSemanal||0) - (b.fechaUltimoPuntoSemanal||0);
                 });
             
