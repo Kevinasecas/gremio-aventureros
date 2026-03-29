@@ -285,7 +285,14 @@
 
             <div id="vista-ranking-semanal" class="hidden animate-[fadeIn_0.3s_ease-in-out]">
                 <div class="flex items-center gap-4 mb-6 border-b border-yellow-700/30 pb-4"><i class="fa-solid fa-hourglass-half text-4xl text-yellow-600"></i><h3 class="text-3xl text-yellow-500 fuente-gremio">Héroes Semanales</h3></div>
+                
                 <div id="podio-semanal" class="flex justify-center items-end gap-2 md:gap-6 mb-10"></div>
+                
+                <div class="bg-black/50 border border-yellow-700/50 rounded-lg p-6 mb-10 shadow-[0_0_15px_rgba(0,0,0,0.8)]">
+                    <h4 class="text-xl text-yellow-500 mb-6 fuente-gremio border-b border-gray-700 pb-2 text-center"><i class="fa-solid fa-crown mr-2"></i>Campeones de la Semana Pasada</h4>
+                    <div id="podio-semanal-anterior" class="flex justify-center items-end gap-2 md:gap-6"></div>
+                </div>
+
                 <div id="wrapper-tabla-semanal" class="overflow-x-auto tabla-scroll rounded-lg border border-yellow-700/30 bg-black/40">
                     <table class="w-full text-left text-sm text-gray-300 min-w-[600px]">
                         <thead class="bg-neutral-800/80 text-yellow-500 border-b"><tr><th class="p-4 w-16">#</th><th class="p-4">Aventurero</th><th class="p-4 text-center">Facción</th><th class="p-4 text-center">Puntos Semanales</th></tr></thead>
@@ -370,12 +377,13 @@
         let imagenBase64Temporal = ""; let imagenNoticiaTemporal = ""; let tipoRecorteActual = ""; let cropper = null; 
         let misionEditandoId = null; let usuarioAjustandoPuntos = null; let logroEditandoId = null; let usuarioEditandoLogros = null;
 
+        // --- SISTEMA DE RELOJ ANCLADO A LA HORA LOCAL DE ESPAÑA ---
         function obtenerInicioSemana() {
             const ahora = new Date(); 
-            const dia = ahora.getUTCDay() || 7; 
-            ahora.setUTCHours(0, 0, 0, 0); 
-            ahora.setUTCDate(ahora.getUTCDate() - dia + 1); 
-            return ahora.getTime();
+            const dia = ahora.getDay() || 7; // Usamos getDay() en lugar de getUTCDay() para que respete el horario local (0=Dom, 1=Lun...)
+            ahora.setHours(0, 0, 0, 0); // Lo ponemos a las 00:00:00 de la hora local
+            ahora.setDate(ahora.getDate() - dia + 1); // Lo retrocedemos al Lunes a las 00:00
+            return ahora.getTime(); // Este número cambiará exactamente el domingo a las 23:59:59 al pasar a Lunes
         }
 
         function actualizarRango(user) {
@@ -410,10 +418,12 @@
                 const configRef = db.collection('sistema').doc('semana');
                 const configDoc = await configRef.get();
                 
-                // CORRECCIÓN: Comprobamos si el documento existe antes de decidir si es semana nueva
                 let esSemanaNueva = false;
+                let podioAnterior = [];
+
                 if (configDoc.exists) {
                     esSemanaNueva = (configDoc.data().actual !== semanaActualNum);
+                    podioAnterior = configDoc.data().podioAnterior || [];
                 }
 
                 const [ resMisiones, resNoticias, resLogros, resUsuarios ] = await Promise.all([
@@ -444,12 +454,17 @@
                     let uAdmin = { nombre: 'ADMIN', password: '0683843', raza: '', faccion: 'Maestro del Gremio', foto: 'https://cdn-icons-png.flaticon.com/512/847/847969.png', puntos: 0, puntosSemanales: 0, fechaUltimoPunto: Date.now(), fechaUltimoPuntoSemanal: Date.now(), rango: 'Leyenda', rol: 'ADMIN', misionActiva: null, progresoLogros: {}, cooldownsMisiones: {}, historialMisiones: { 'Fácil': [], 'Media': [], 'Difícil': [], 'Épica': [] } };
                     usuariosDB.push(uAdmin);
                     await nubeGuardarUsuario(uAdmin);
-                } else {
-                    let adminFresco = usuariosDB.find(u => u.nombre === 'ADMIN');
-                    if (adminFresco && adminFresco.password !== '0683843') {
-                        adminFresco.password = '0683843';
-                        await nubeGuardarUsuario(adminFresco);
-                    }
+                }
+
+                // Si es semana nueva (esta noche a las 23:59), calculamos el Top 3 y lo guardamos antes de reiniciar
+                if (esSemanaNueva && configDoc.exists) {
+                    let top3 = [...usuariosDB]
+                        .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN' && (parseInt(u.puntosSemanales)||0) > 0)
+                        .sort((a,b) => (parseInt(b.puntosSemanales)||0) - (parseInt(a.puntosSemanales)||0))
+                        .slice(0, 3)
+                        .map(u => ({ nombre: u.nombre, foto: u.foto, puntosSemanales: u.puntosSemanales, faccion: u.faccion }));
+                    
+                    podioAnterior = top3;
                 }
 
                 for (let u of usuariosDB) {
@@ -470,6 +485,12 @@
                         u.puntosSemanales = 0; 
                         u.fechaUltimoPuntoSemanal = Date.now();
                         necesitaGuardar = true; 
+                    } else {
+                        // PARCHE DE SINCRONIZACIÓN: Iguala los puntos de la semana a los globales para solucionar el error actual
+                        if (u.puntosSemanales < u.puntos) {
+                            u.puntosSemanales = u.puntos;
+                            necesitaGuardar = true;
+                        }
                     }
 
                     let viejoRango = u.rango; actualizarRango(u);
@@ -478,10 +499,11 @@
                 }
 
                 if (esSemanaNueva || !configDoc.exists) {
-                    await configRef.set({ actual: semanaActualNum });
+                    await configRef.set({ actual: semanaActualNum, podioAnterior: podioAnterior });
                 }
 
                 localStorage.setItem('gremio_usuarios', JSON.stringify(usuariosDB));
+                localStorage.setItem('gremio_podio_anterior', JSON.stringify(podioAnterior));
 
                 const sesion = localStorage.getItem('gremio_sesion_actual');
                 if (sesion) {
@@ -873,10 +895,8 @@
             if (!user.historialMisiones) user.historialMisiones = { 'Fácil':[], 'Media':[], 'Difícil':[], 'Épica':[] };
             if (!user.historialMisiones[dif]) user.historialMisiones[dif] = [];
             
-            // Añadimos la misión actual al historial
             user.historialMisiones[dif].push(user.misionActiva.id);
             
-            // LA REGLA DE 6 ESTRICTA: Si el historial tiene más de 5, borramos la primera que hizo
             if (user.historialMisiones[dif].length > 5) {
                 user.historialMisiones[dif].shift();
             }
@@ -932,7 +952,6 @@
                 return alert(`Estás exhausto. Necesitas descansar aproximadamente ${faltanMinutos} minutos antes de volver a la carga.`);
             }
             
-            // Comprobación dura
             let enHistorial = sesion.historialMisiones && sesion.historialMisiones[m.dificultad] && sesion.historialMisiones[m.dificultad].includes(m.id);
             if (enHistorial) return alert(`Recientemente hiciste este encargo exacto. Tienes que completar otras misiones de este tipo antes de repetirla.`);
             
@@ -978,7 +997,6 @@
                     if (r > 0) { enCool = true; let h = Math.floor(r/3600000); let mi = Math.ceil((r%3600000)/60000); tRes = h>0?`${h}h ${mi}m`:`${mi}m`; }
                 }
                 
-                // Comprobación dura
                 let enHist = sesion && sesion.historialMisiones && sesion.historialMisiones[m.dificultad] && sesion.historialMisiones[m.dificultad].includes(m.id);
                 
                 let btnAcc = '';
@@ -1005,7 +1023,7 @@
 
         function cargarRankingGlobal() {
             let uc = JSON.parse(localStorage.getItem('gremio_usuarios')||'[]')
-                .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN')
+                .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN' && parseInt(u.puntos||0, 10) > 0)
                 .sort((a,b) => {
                     let ptsA = parseInt(a.puntos)||0;
                     let ptsB = parseInt(b.puntos)||0;
@@ -1021,7 +1039,7 @@
 
         function cargarRankingSemanal() {
             let uc = JSON.parse(localStorage.getItem('gremio_usuarios')||'[]')
-                .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN')
+                .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN' && parseInt(u.puntosSemanales||0, 10) > 0)
                 .sort((a,b) => {
                     let ptsA = parseInt(a.puntosSemanales)||0;
                     let ptsB = parseInt(b.puntosSemanales)||0;
@@ -1030,6 +1048,17 @@
                 });
             
             document.getElementById('podio-semanal').innerHTML = uc.length === 0 ? `<div class="p-4 text-center text-gray-500 w-full">Aún no hay campeones esta semana.</div>` : (uc[1]?generarHTMLPodio(uc[1],2,'semanal'):'') + (uc[0]?generarHTMLPodio(uc[0],1,'semanal'):'') + (uc[2]?generarHTMLPodio(uc[2],3,'semanal'):'');
+
+            // --- CARGAR PODIO ANTERIOR ---
+            let podioAnt = JSON.parse(localStorage.getItem('gremio_podio_anterior')||'[]');
+            let contenedorAnterior = document.getElementById('podio-semanal-anterior');
+            if (podioAnt.length === 0) {
+                contenedorAnterior.innerHTML = `<div class="p-4 text-center text-gray-500 w-full italic">La temporada acaba de empezar. Aún no hay registros antiguos.</div>`;
+            } else {
+                contenedorAnterior.innerHTML = (podioAnt[1]?generarHTMLPodio(podioAnt[1],2,'semanal'):'') +
+                                               (podioAnt[0]?generarHTMLPodio(podioAnt[0],1,'semanal'):'') +
+                                               (podioAnt[2]?generarHTMLPodio(podioAnt[2],3,'semanal'):'');
+            }
             
             let tw = document.getElementById('wrapper-tabla-semanal'); let tb = document.getElementById('tabla-ranking-semanal'); tb.innerHTML = '';
             if (uc.length <= 3) tw.classList.add('hidden'); else { tw.classList.remove('hidden'); for(let i=3;i<uc.length;i++){ tb.innerHTML += `<tr class="border-b border-gray-800 hover:bg-black/40 transition"><td class="p-4 text-center text-gray-500">#${i+1}</td><td class="p-4 flex gap-3 items-center"><img src="${uc[i].foto||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="w-10 h-10 rounded-full border border-gray-700/50 object-cover"><div class="font-bold text-gray-300">${uc[i].nombre}</div></td><td class="p-4 text-center text-gray-500 text-sm">${uc[i].faccion||'-'}</td><td class="p-4 text-center font-bold text-white">${uc[i].puntosSemanales}</td></tr>`; } }
