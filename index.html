@@ -409,8 +409,12 @@
                 
                 const configRef = db.collection('sistema').doc('semana');
                 const configDoc = await configRef.get();
-                const semanaGuardadaNube = configDoc.exists ? configDoc.data().actual : null;
-                const esSemanaNueva = (semanaGuardadaNube !== semanaActualNum);
+                
+                // CORRECCIÓN: Comprobamos si el documento existe antes de decidir si es semana nueva
+                let esSemanaNueva = false;
+                if (configDoc.exists) {
+                    esSemanaNueva = (configDoc.data().actual !== semanaActualNum);
+                }
 
                 const [ resMisiones, resNoticias, resLogros, resUsuarios ] = await Promise.all([
                     db.collection('misiones').get(),
@@ -473,7 +477,7 @@
                     if (necesitaGuardar) await nubeGuardarUsuario(u);
                 }
 
-                if (esSemanaNueva) {
+                if (esSemanaNueva || !configDoc.exists) {
                     await configRef.set({ actual: semanaActualNum });
                 }
 
@@ -843,7 +847,7 @@
             cargarTablaSeguimiento();
         }
 
-        // --- EL NUEVO SISTEMA DINÁMICO DE HISTORIAL DE MISIONES ---
+        // --- SISTEMA ESTRICTO DE MEMORIA DE MISIONES (FIJO EN 5) ---
         async function completarMisionAventurero(nom) {
             if (!confirm(`Confirmar completar misión a ${nom}?`)) return;
             let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios')); let idx = usuarios.findIndex(u => u.nombre === nom); if (idx === -1) return;
@@ -868,16 +872,12 @@
             
             if (!user.historialMisiones) user.historialMisiones = { 'Fácil':[], 'Media':[], 'Difícil':[], 'Épica':[] };
             if (!user.historialMisiones[dif]) user.historialMisiones[dif] = [];
+            
+            // Añadimos la misión actual al historial
             user.historialMisiones[dif].push(user.misionActiva.id);
             
-            // --- PARCHE DE SEGURIDAD ANTIBLOQUEOS ---
-            let misionesActivas = JSON.parse(localStorage.getItem('gremio_misiones')) || [];
-            let misionesDeEsteTipo = misionesActivas.filter(m => m.dificultad === dif).length;
-            let maximoIdeal = dif === 'Épica' ? 2 : 5;
-            // Si hay pocas misiones creadas, ajustamos el límite para que no se bloqueen jamás
-            let limiteReal = Math.min(maximoIdeal, Math.max(0, misionesDeEsteTipo - 1));
-
-            while(user.historialMisiones[dif].length > limiteReal) {
+            // LA REGLA DE 6 ESTRICTA: Si el historial tiene más de 5, borramos la primera que hizo
+            if (user.historialMisiones[dif].length > 5) {
                 user.historialMisiones[dif].shift();
             }
 
@@ -932,12 +932,9 @@
                 return alert(`Estás exhausto. Necesitas descansar aproximadamente ${faltanMinutos} minutos antes de volver a la carga.`);
             }
             
-            // Verificamos de nuevo dinámicamente para la aceptación
-            let countDif = misiones.filter(mis => mis.dificultad === m.dificultad).length;
-            let limiteReal = Math.min(m.dificultad === 'Épica' ? 2 : 5, Math.max(0, countDif - 1));
-            let histReciente = (sesion.historialMisiones && sesion.historialMisiones[m.dificultad]) ? sesion.historialMisiones[m.dificultad].slice(-limiteReal) : [];
-            
-            if (histReciente.includes(m.id)) return alert(`Recientemente hiciste este encargo exacto. Deja algo para el resto.`);
+            // Comprobación dura
+            let enHistorial = sesion.historialMisiones && sesion.historialMisiones[m.dificultad] && sesion.historialMisiones[m.dificultad].includes(m.id);
+            if (enHistorial) return alert(`Recientemente hiciste este encargo exacto. Tienes que completar otras misiones de este tipo antes de repetirla.`);
             
             sesion.misionActiva = { id: m.id, titulo: m.titulo, recompensa: m.recompensa, dificultad: m.dificultad, descripcion: m.descripcion };
             await actualizarUsuarioStorage(sesion); cargarMisiones();
@@ -953,7 +950,7 @@
             await nubeGuardarUsuario(ses);
         }
 
-        // --- SISTEMA DE TABLÓN ORDENADO Y BLINDADO ---
+        // --- CARGAR EL TABLÓN ---
         function cargarMisiones() {
             let misiones = JSON.parse(localStorage.getItem('gremio_misiones')) || []; 
             let sesion = JSON.parse(localStorage.getItem('gremio_sesion_actual'));
@@ -971,21 +968,6 @@
                 return b.id - a.id; 
             });
 
-            // Contar misiones por dificultad para el historial seguro
-            let countDif = { 'Fácil': 0, 'Media': 0, 'Difícil': 0, 'Épica': 0 };
-            misiones.forEach(m => countDif[m.dificultad] = (countDif[m.dificultad]||0) + 1);
-
-            let histValido = {'Fácil':[], 'Media':[], 'Difícil':[], 'Épica':[]};
-            if (sesion && sesion.historialMisiones) {
-                ['Fácil', 'Media', 'Difícil', 'Épica'].forEach(d => {
-                   if (sesion.historialMisiones[d]) {
-                       let maxH = d === 'Épica' ? 2 : 5;
-                       let lim = Math.min(maxH, Math.max(0, countDif[d] - 1));
-                       histValido[d] = sesion.historialMisiones[d].slice(-lim); 
-                   }
-                });
-            }
-
             misionesOrdenadas.forEach(m => {
                 let colDif = m.dificultad==='Media'?'text-yellow-400':m.dificultad==='Difícil'?'text-orange-500':m.dificultad==='Épica'?'text-red-500 font-bold drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]':'text-green-400';
                 let btnAdm = esAdmin ? `<div class="absolute top-3 right-3 flex gap-3 z-10"><button onclick="abrirModalEditarMision(${m.id})" class="text-blue-500 bg-black/50 p-1.5 rounded hover:text-blue-400 transition"><i class="fa-solid fa-pen"></i></button><button onclick="eliminarMision(${m.id})" class="text-red-600 bg-black/50 p-1.5 rounded hover:text-red-400 transition"><i class="fa-solid fa-trash"></i></button></div>` : '';
@@ -996,8 +978,8 @@
                     if (r > 0) { enCool = true; let h = Math.floor(r/3600000); let mi = Math.ceil((r%3600000)/60000); tRes = h>0?`${h}h ${mi}m`:`${mi}m`; }
                 }
                 
-                // Usamos el historial seguro para saber si bloquearla
-                let enHist = sesion && histValido[m.dificultad] && histValido[m.dificultad].includes(m.id);
+                // Comprobación dura
+                let enHist = sesion && sesion.historialMisiones && sesion.historialMisiones[m.dificultad] && sesion.historialMisiones[m.dificultad].includes(m.id);
                 
                 let btnAcc = '';
                 if (sesion && sesion.misionActiva && sesion.misionActiva.id === m.id) btnAcc = `<button onclick="abandonarMision()" class="px-3 py-1.5 bg-red-900/60 border border-red-700 text-red-400 rounded text-xs font-bold uppercase hover:bg-red-800/80 transition shadow-[0_0_8px_rgba(239,68,68,0.4)]"><i class="fa-solid fa-xmark mr-1"></i>Abandonar</button>`;
@@ -1023,7 +1005,7 @@
 
         function cargarRankingGlobal() {
             let uc = JSON.parse(localStorage.getItem('gremio_usuarios')||'[]')
-                .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN' && parseInt(u.puntos||0, 10) > 0)
+                .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN')
                 .sort((a,b) => {
                     let ptsA = parseInt(a.puntos)||0;
                     let ptsB = parseInt(b.puntos)||0;
@@ -1039,7 +1021,7 @@
 
         function cargarRankingSemanal() {
             let uc = JSON.parse(localStorage.getItem('gremio_usuarios')||'[]')
-                .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN' && parseInt(u.puntosSemanales||0, 10) > 0)
+                .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN')
                 .sort((a,b) => {
                     let ptsA = parseInt(a.puntosSemanales)||0;
                     let ptsB = parseInt(b.puntosSemanales)||0;
