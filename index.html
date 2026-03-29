@@ -496,7 +496,6 @@
                         necesitaGuardar = true; 
                     } else {
                         // PARCHE DE SINCRONIZACIÓN ABSOLUTA PARA ESTA PRIMERA SEMANA:
-                        // Si estamos a mitad de semana 1, los puntos globales y semanales deben ser idénticos.
                         if (u.puntos > 0 && u.puntosSemanales !== u.puntos) {
                             u.puntosSemanales = u.puntos;
                             necesitaGuardar = true;
@@ -879,7 +878,7 @@
             cargarTablaSeguimiento();
         }
 
-        // --- SISTEMA ESTRICTO DE MEMORIA DE MISIONES ---
+        // --- SISTEMA DE MEMORIA DE MISIONES (RESETEO EN TANDA DE 6) ---
         async function completarMisionAventurero(nom) {
             if (!confirm(`Confirmar completar misión a ${nom}?`)) return;
             let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios')); let idx = usuarios.findIndex(u => u.nombre === nom); if (idx === -1) return;
@@ -905,10 +904,12 @@
             if (!user.historialMisiones) user.historialMisiones = { 'Fácil':[], 'Media':[], 'Difícil':[], 'Épica':[] };
             if (!user.historialMisiones[dif]) user.historialMisiones[dif] = [];
             
+            // Añadimos la misión al historial bloqueado
             user.historialMisiones[dif].push(user.misionActiva.id);
             
-            if (user.historialMisiones[dif].length > 5) {
-                user.historialMisiones[dif].shift();
+            // LA NUEVA REGLA: Si llegamos a 6 misiones de este tipo, se borra el historial y se desbloquean todas de golpe
+            if (user.historialMisiones[dif].length >= 6) {
+                user.historialMisiones[dif] = []; // Reseteo completo
             }
 
             if (!user.progresoLogros) user.progresoLogros = {};
