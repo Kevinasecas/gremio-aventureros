@@ -388,10 +388,9 @@
         // --- SISTEMA DE RELOJ LOCAL ESTRICTO (ESPAÑA) ---
         function obtenerInicioSemana() {
             const ahora = new Date(); 
-            // 0 es Domingo, 1 es Lunes. Lo convertimos para que el inicio sea Lunes (1 a 7)
             const dia = ahora.getDay() === 0 ? 7 : ahora.getDay(); 
             ahora.setHours(0, 0, 0, 0); 
-            ahora.setDate(ahora.getDate() - dia + 1); // Retrocede a las 00:00 del Lunes actual
+            ahora.setDate(ahora.getDate() - dia + 1); 
             return ahora.getTime(); 
         }
 
@@ -465,7 +464,6 @@
                     await nubeGuardarUsuario(uAdmin);
                 }
 
-                // Guardar los campeones antes del reinicio real a las 23:59 del domingo
                 if (esSemanaNueva && configDoc.exists) {
                     let top3 = [...usuariosDB]
                         .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN' && (parseInt(u.puntosSemanales)||0) > 0)
@@ -478,6 +476,14 @@
 
                 for (let u of usuariosDB) {
                     let necesitaGuardar = false;
+
+                    // PARCHE DE DESBLOQUEO DE MISIONES (Se ejecuta solo una vez por aventurero)
+                    if (!u.parcheMisionesV2) {
+                        u.historialMisiones = { 'Fácil': [], 'Media': [], 'Difícil': [], 'Épica': [] };
+                        u.cooldownsMisiones = {};
+                        u.parcheMisionesV2 = true;
+                        necesitaGuardar = true;
+                    }
 
                     let ptsBase = parseInt(u.puntos, 10);
                     if (isNaN(ptsBase)) { u.puntos = 0; necesitaGuardar = true; }
@@ -495,7 +501,6 @@
                         u.fechaUltimoPuntoSemanal = Date.now();
                         necesitaGuardar = true; 
                     } else {
-                        // PARCHE DE SINCRONIZACIÓN ABSOLUTA PARA ESTA PRIMERA SEMANA:
                         if (u.puntos > 0 && u.puntosSemanales !== u.puntos) {
                             u.puntosSemanales = u.puntos;
                             necesitaGuardar = true;
