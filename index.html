@@ -273,7 +273,7 @@
             </div>
 
             <div id="vista-ranking-global" class="hidden animate-[fadeIn_0.3s_ease-in-out]">
-                <div class="flex items-center gap-4 mb-6 border-b border-yellow-700/30 pb-4"><i class="fa-solid fa-globe text-4xl text-yellow-600"></i><h3 class="text-3xl text-yellow-500 fuente-gremio">Salón de la Fama</h3></div>
+                <div class="flex items-center gap-4 mb-6 border-b border-yellow-700/30 pb-4"><i class="fa-solid fa-globe text-4xl text-yellow-600"></i><h3 class="text-3xl text-yellow-500 fuente-gremio">Salón de la Fama (Top 10)</h3></div>
                 <div id="podio-global" class="flex justify-center items-end gap-2 md:gap-6 mb-10"></div>
                 <div id="wrapper-tabla-global" class="overflow-x-auto tabla-scroll rounded-lg border border-yellow-700/30 bg-black/40">
                     <table class="w-full text-left text-sm text-gray-300 min-w-[600px]">
@@ -284,20 +284,28 @@
             </div>
 
             <div id="vista-ranking-semanal" class="hidden animate-[fadeIn_0.3s_ease-in-out]">
-                <div class="flex items-center gap-4 mb-6 border-b border-yellow-700/30 pb-4"><i class="fa-solid fa-hourglass-half text-4xl text-yellow-600"></i><h3 class="text-3xl text-yellow-500 fuente-gremio">Héroes Semanales</h3></div>
-                
-                <div id="podio-semanal" class="flex justify-center items-end gap-2 md:gap-6 mb-10"></div>
-                
-                <div class="bg-black/50 border border-yellow-700/50 rounded-lg p-6 mb-10 shadow-[0_0_15px_rgba(0,0,0,0.8)]">
-                    <h4 class="text-xl text-yellow-500 mb-6 fuente-gremio border-b border-gray-700 pb-2 text-center"><i class="fa-solid fa-crown mr-2"></i>Campeones de la Semana Pasada</h4>
-                    <div id="podio-semanal-anterior" class="flex justify-center items-end gap-2 md:gap-6"></div>
+                <div class="flex items-center gap-4 mb-6 border-b border-yellow-700/30 pb-4">
+                    <i class="fa-solid fa-hourglass-half text-4xl text-yellow-600"></i>
+                    <h3 class="text-3xl text-yellow-500 fuente-gremio">Héroes Semanales (Top 10)</h3>
                 </div>
 
-                <div id="wrapper-tabla-semanal" class="overflow-x-auto tabla-scroll rounded-lg border border-yellow-700/30 bg-black/40">
-                    <table class="w-full text-left text-sm text-gray-300 min-w-[600px]">
-                        <thead class="bg-neutral-800/80 text-yellow-500 border-b"><tr><th class="p-4 w-16">#</th><th class="p-4">Aventurero</th><th class="p-4 text-center">Facción</th><th class="p-4 text-center">Puntos Semanales</th></tr></thead>
-                        <tbody id="tabla-ranking-semanal"></tbody>
-                    </table>
+                <div class="flex flex-col xl:flex-row gap-8">
+                    <div class="flex-grow">
+                        <div id="podio-semanal" class="flex justify-center items-end gap-2 md:gap-6 mb-10"></div>
+                        <div id="wrapper-tabla-semanal" class="overflow-x-auto tabla-scroll rounded-lg border border-yellow-700/30 bg-black/40">
+                            <table class="w-full text-left text-sm text-gray-300 min-w-[600px]">
+                                <thead class="bg-neutral-800/80 text-yellow-500 border-b"><tr><th class="p-4 w-16">#</th><th class="p-4">Aventurero</th><th class="p-4 text-center">Facción</th><th class="p-4 text-center">Puntos Semanales</th></tr></thead>
+                                <tbody id="tabla-ranking-semanal"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="xl:w-1/3 flex-shrink-0">
+                        <div class="bg-black/50 border border-yellow-700/50 rounded-lg p-5 shadow-[0_0_15px_rgba(0,0,0,0.8)] h-full">
+                            <h4 class="text-lg text-yellow-500 mb-5 fuente-gremio border-b border-gray-700 pb-2 text-center"><i class="fa-solid fa-crown mr-2"></i>Semana Pasada</h4>
+                            <div id="podio-semanal-anterior" class="flex flex-col gap-4"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -377,13 +385,14 @@
         let imagenBase64Temporal = ""; let imagenNoticiaTemporal = ""; let tipoRecorteActual = ""; let cropper = null; 
         let misionEditandoId = null; let usuarioAjustandoPuntos = null; let logroEditandoId = null; let usuarioEditandoLogros = null;
 
-        // --- SISTEMA DE RELOJ ANCLADO A LA HORA LOCAL DE ESPAÑA ---
+        // --- SISTEMA DE RELOJ LOCAL ESTRICTO (ESPAÑA) ---
         function obtenerInicioSemana() {
             const ahora = new Date(); 
-            const dia = ahora.getDay() || 7; // Usamos getDay() en lugar de getUTCDay() para que respete el horario local (0=Dom, 1=Lun...)
-            ahora.setHours(0, 0, 0, 0); // Lo ponemos a las 00:00:00 de la hora local
-            ahora.setDate(ahora.getDate() - dia + 1); // Lo retrocedemos al Lunes a las 00:00
-            return ahora.getTime(); // Este número cambiará exactamente el domingo a las 23:59:59 al pasar a Lunes
+            // 0 es Domingo, 1 es Lunes. Lo convertimos para que el inicio sea Lunes (1 a 7)
+            const dia = ahora.getDay() === 0 ? 7 : ahora.getDay(); 
+            ahora.setHours(0, 0, 0, 0); 
+            ahora.setDate(ahora.getDate() - dia + 1); // Retrocede a las 00:00 del Lunes actual
+            return ahora.getTime(); 
         }
 
         function actualizarRango(user) {
@@ -456,7 +465,7 @@
                     await nubeGuardarUsuario(uAdmin);
                 }
 
-                // Si es semana nueva (esta noche a las 23:59), calculamos el Top 3 y lo guardamos antes de reiniciar
+                // Guardar los campeones antes del reinicio real a las 23:59 del domingo
                 if (esSemanaNueva && configDoc.exists) {
                     let top3 = [...usuariosDB]
                         .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN' && (parseInt(u.puntosSemanales)||0) > 0)
@@ -486,8 +495,9 @@
                         u.fechaUltimoPuntoSemanal = Date.now();
                         necesitaGuardar = true; 
                     } else {
-                        // PARCHE DE SINCRONIZACIÓN: Iguala los puntos de la semana a los globales para solucionar el error actual
-                        if (u.puntosSemanales < u.puntos) {
+                        // PARCHE DE SINCRONIZACIÓN ABSOLUTA PARA ESTA PRIMERA SEMANA:
+                        // Si estamos a mitad de semana 1, los puntos globales y semanales deben ser idénticos.
+                        if (u.puntos > 0 && u.puntosSemanales !== u.puntos) {
                             u.puntosSemanales = u.puntos;
                             necesitaGuardar = true;
                         }
@@ -869,7 +879,7 @@
             cargarTablaSeguimiento();
         }
 
-        // --- SISTEMA ESTRICTO DE MEMORIA DE MISIONES (FIJO EN 5) ---
+        // --- SISTEMA ESTRICTO DE MEMORIA DE MISIONES ---
         async function completarMisionAventurero(nom) {
             if (!confirm(`Confirmar completar misión a ${nom}?`)) return;
             let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios')); let idx = usuarios.findIndex(u => u.nombre === nom); if (idx === -1) return;
@@ -1021,6 +1031,14 @@
             return `<div class="flex flex-col items-center justify-end w-28 md:w-40 animate-[fadeIn_0.5s_ease-in-out]"><div class="relative z-10 -mb-6 md:-mb-8"><img src="${u.foto||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="${tImg} rounded-full border-4 ${cBord} object-cover bg-black"><div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${cMed} bg-black/80 rounded-full px-2 py-0.5 border border-gray-800"><i class="fa-solid ${puesto===1?'fa-trophy':'fa-medal'}"></i></div></div><div class="w-full flex flex-col items-center justify-end rounded-t-xl border-t border-l border-r ${aCaj} p-2 pb-3 shadow-lg"><div class="${tTxt} font-bold text-white truncate w-full text-center fuente-gremio">${u.nombre}</div>${tipo==='global'?`<div class="${obtenerColorRango(u.rango)} text-xs md:text-sm font-bold mb-1">${u.rango}</div>`:`<div class="text-xs text-gray-500 mb-1 truncate w-full text-center">${u.faccion||'Sin facción'}</div>`}<div class="font-black text-white bg-black/60 px-2 py-1 rounded w-full text-center border border-gray-700/50 text-sm shadow-inner">${tipo==='global'?u.puntos:u.puntosSemanales} pts</div></div></div>`;
         }
 
+        // Diseño en lista compacta para el bloque lateral de la semana pasada
+        function generarHTMLCampeonPasado(u, puesto) {
+            if (!u) return '';
+            let cMed = puesto===1?'text-yellow-400':puesto===2?'text-gray-300':'text-orange-700';
+            let cBord = puesto===1?'border-yellow-400':puesto===2?'border-gray-300':'border-orange-700';
+            return `<div class="flex items-center gap-4 bg-neutral-900/60 border border-gray-700/50 p-3 rounded-lg"><div class="relative"><img src="${u.foto||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="w-12 h-12 rounded-full border-2 ${cBord} object-cover"><div class="absolute -bottom-1 -right-1 ${cMed} bg-black/80 rounded-full w-5 h-5 flex items-center justify-center border border-gray-800 text-xs"><i class="fa-solid ${puesto===1?'fa-trophy':'fa-medal'}"></i></div></div><div class="flex-grow min-w-0"><div class="font-bold text-white truncate text-sm fuente-gremio">${u.nombre}</div><div class="text-xs text-gray-500 truncate">${u.faccion||'Sin facción'}</div></div><div class="font-black text-yellow-500 text-sm whitespace-nowrap">${u.puntosSemanales} pts</div></div>`;
+        }
+
         function cargarRankingGlobal() {
             let uc = JSON.parse(localStorage.getItem('gremio_usuarios')||'[]')
                 .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN' && parseInt(u.puntos||0, 10) > 0)
@@ -1029,12 +1047,13 @@
                     let ptsB = parseInt(b.puntos)||0;
                     if (ptsA !== ptsB) return ptsB - ptsA;
                     return (a.fechaUltimoPunto||0) - (b.fechaUltimoPunto||0);
-                });
+                })
+                .slice(0, 10); // CORTAR A LOS 10 PRIMEROS
             
             document.getElementById('podio-global').innerHTML = uc.length === 0 ? `<div class="p-4 text-center text-gray-500 w-full">El salón del honor está vacío.</div>` : (uc[1]?generarHTMLPodio(uc[1],2,'global'):'') + (uc[0]?generarHTMLPodio(uc[0],1,'global'):'') + (uc[2]?generarHTMLPodio(uc[2],3,'global'):'');
             
             let tw = document.getElementById('wrapper-tabla-global'); let tb = document.getElementById('tabla-ranking-global'); tb.innerHTML = '';
-            if (uc.length <= 3) tw.classList.add('hidden'); else { tw.classList.remove('hidden'); for(let i=3;i<uc.length;i++){ tb.innerHTML += `<tr class="border-b border-gray-800 hover:bg-black/40 transition"><td class="p-4 text-center text-gray-500">#${i+1}</td><td class="p-4 flex gap-3"><img src="${uc[i].foto||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="w-10 h-10 rounded-full border border-gray-700/50 object-cover"><div><div class="font-bold text-gray-300">${uc[i].nombre}</div><div class="text-xs text-gray-500">${uc[i].faccion||'-'}</div></div></td><td class="p-4 text-center"><span class="${obtenerColorRango(uc[i].rango)}">${uc[i].rango}</span></td><td class="p-4 text-center font-bold text-white">${uc[i].puntos}</td></tr>`; } }
+            if (uc.length <= 3) tw.classList.add('hidden'); else { tw.classList.remove('hidden'); for(let i=3;i<uc.length;i++){ tb.innerHTML += `<tr class="border-b border-gray-800 hover:bg-black/40 transition"><td class="p-4 text-center text-gray-500 font-bold">#${i+1}</td><td class="p-4 flex gap-3"><img src="${uc[i].foto||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="w-10 h-10 rounded-full border border-gray-700/50 object-cover"><div><div class="font-bold text-gray-300">${uc[i].nombre}</div><div class="text-xs text-gray-500">${uc[i].faccion||'-'}</div></div></td><td class="p-4 text-center"><span class="${obtenerColorRango(uc[i].rango)}">${uc[i].rango}</span></td><td class="p-4 text-center font-bold text-white">${uc[i].puntos}</td></tr>`; } }
         }
 
         function cargarRankingSemanal() {
@@ -1045,23 +1064,24 @@
                     let ptsB = parseInt(b.puntosSemanales)||0;
                     if (ptsA !== ptsB) return ptsB - ptsA;
                     return (a.fechaUltimoPuntoSemanal||0) - (b.fechaUltimoPuntoSemanal||0);
-                });
+                })
+                .slice(0, 10); // CORTAR A LOS 10 PRIMEROS
             
             document.getElementById('podio-semanal').innerHTML = uc.length === 0 ? `<div class="p-4 text-center text-gray-500 w-full">Aún no hay campeones esta semana.</div>` : (uc[1]?generarHTMLPodio(uc[1],2,'semanal'):'') + (uc[0]?generarHTMLPodio(uc[0],1,'semanal'):'') + (uc[2]?generarHTMLPodio(uc[2],3,'semanal'):'');
 
-            // --- CARGAR PODIO ANTERIOR ---
+            // --- CARGAR PODIO ANTERIOR EN EL BLOQUE LATERAL ---
             let podioAnt = JSON.parse(localStorage.getItem('gremio_podio_anterior')||'[]');
             let contenedorAnterior = document.getElementById('podio-semanal-anterior');
             if (podioAnt.length === 0) {
-                contenedorAnterior.innerHTML = `<div class="p-4 text-center text-gray-500 w-full italic">La temporada acaba de empezar. Aún no hay registros antiguos.</div>`;
+                contenedorAnterior.innerHTML = `<div class="p-4 text-center text-gray-500 w-full italic text-sm">La temporada acaba de empezar. Aún no hay registros de campeones antiguos.</div>`;
             } else {
-                contenedorAnterior.innerHTML = (podioAnt[1]?generarHTMLPodio(podioAnt[1],2,'semanal'):'') +
-                                               (podioAnt[0]?generarHTMLPodio(podioAnt[0],1,'semanal'):'') +
-                                               (podioAnt[2]?generarHTMLPodio(podioAnt[2],3,'semanal'):'');
+                contenedorAnterior.innerHTML = (podioAnt[0]?generarHTMLCampeonPasado(podioAnt[0],1):'') +
+                                               (podioAnt[1]?generarHTMLCampeonPasado(podioAnt[1],2):'') +
+                                               (podioAnt[2]?generarHTMLCampeonPasado(podioAnt[2],3):'');
             }
             
             let tw = document.getElementById('wrapper-tabla-semanal'); let tb = document.getElementById('tabla-ranking-semanal'); tb.innerHTML = '';
-            if (uc.length <= 3) tw.classList.add('hidden'); else { tw.classList.remove('hidden'); for(let i=3;i<uc.length;i++){ tb.innerHTML += `<tr class="border-b border-gray-800 hover:bg-black/40 transition"><td class="p-4 text-center text-gray-500">#${i+1}</td><td class="p-4 flex gap-3 items-center"><img src="${uc[i].foto||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="w-10 h-10 rounded-full border border-gray-700/50 object-cover"><div class="font-bold text-gray-300">${uc[i].nombre}</div></td><td class="p-4 text-center text-gray-500 text-sm">${uc[i].faccion||'-'}</td><td class="p-4 text-center font-bold text-white">${uc[i].puntosSemanales}</td></tr>`; } }
+            if (uc.length <= 3) tw.classList.add('hidden'); else { tw.classList.remove('hidden'); for(let i=3;i<uc.length;i++){ tb.innerHTML += `<tr class="border-b border-gray-800 hover:bg-black/40 transition"><td class="p-4 text-center text-gray-500 font-bold">#${i+1}</td><td class="p-4 flex gap-3 items-center"><img src="${uc[i].foto||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="w-10 h-10 rounded-full border border-gray-700/50 object-cover"><div class="font-bold text-gray-300">${uc[i].nombre}</div></td><td class="p-4 text-center text-gray-500 text-sm">${uc[i].faccion||'-'}</td><td class="p-4 text-center font-bold text-white">${uc[i].puntosSemanales}</td></tr>`; } }
         }
     </script>
 </body>
