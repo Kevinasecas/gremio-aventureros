@@ -610,15 +610,12 @@
             let esAdmin = sesion && (sesion.rol === 'ADMIN' || sesion.rol === 'MOD'); 
             cont.innerHTML = '';
 
-            // --- EL NUEVO SISTEMA DE ORDENACIÓN DE LOGROS ---
             const ordenRecursos = DATA_BRUTA.map(c => c.categoria);
             logros.sort((a, b) => {
-                // Primero agruparlos por su recurso (Iron Ore, Gold Ore...)
                 let indexA = ordenRecursos.indexOf(a.recurso);
                 let indexB = ordenRecursos.indexOf(b.recurso);
                 if (indexA !== indexB) return indexA - indexB;
                 
-                // Si son del mismo recurso, ordenarlos por cantidad de menor a mayor
                 let reqA = parseInt((a.requisito || "0").replace(/\./g, ''), 10);
                 let reqB = parseInt((b.requisito || "0").replace(/\./g, ''), 10);
                 return reqA - reqB;
@@ -626,7 +623,6 @@
 
             logros.forEach(l => {
                 let tema = obtenerTemaLogro(l.recurso);
-                // El lapicero para editar se queda exclusivamente aquí en el catálogo
                 let btn = esAdmin ? `<button onclick="abrirModalEditarLogro('${l.id}')" class="absolute top-3 right-3 text-white bg-black/50 p-1.5 rounded z-10 hover:text-yellow-400 transition"><i class="fa-solid fa-pen"></i></button>` : '';
                 cont.innerHTML += `<div class="bg-gradient-to-br ${tema.card} border rounded-lg p-4 relative flex flex-col overflow-hidden"><i class="fa-solid ${l.icono} absolute -bottom-4 -right-4 text-6xl opacity-5 -rotate-12 z-0"></i>${btn}<div class="flex gap-4 mb-3 z-10"><div class="w-12 h-12 rounded-full bg-neutral-900/80 border border-gray-600 flex items-center justify-center ${tema.text} text-xl"><i class="fa-solid ${l.icono}"></i></div><div class="pr-8"><h4 class="text-white font-bold">${l.nombre}</h4><span class="text-xs text-gray-400">${l.recurso}: <span class="font-bold ${tema.text}">${l.requisito}</span></span></div></div><div class="mt-auto pt-3 border-t border-gray-700/50 z-10"><span class="text-xs ${tema.text} font-bold block mb-1 uppercase">Recompensa:</span><span class="text-sm text-gray-300">${l.recompensa}</span></div></div>`;
             });
@@ -876,7 +872,9 @@
             if (!user.historialMisiones) user.historialMisiones = { 'Fácil':[], 'Media':[], 'Difícil':[], 'Épica':[] };
             if (!user.historialMisiones[dif]) user.historialMisiones[dif] = [];
             user.historialMisiones[dif].push(user.misionActiva.id);
-            if (user.historialMisiones[dif].length > (dif==='Épica'?3:6)) user.historialMisiones[dif].shift();
+            
+            // LA CORRECCIÓN: Un tope de 5 en la memoria para que al hacer la 6ª se libere la 1ª
+            if (user.historialMisiones[dif].length > (dif==='Épica'?2:5)) user.historialMisiones[dif].shift();
 
             if (!user.progresoLogros) user.progresoLogros = {};
             user.progresoLogros['Misiones Totales'] = (user.progresoLogros['Misiones Totales']||0)+1; user.progresoLogros['Misiones '+dif+'es'] = (user.progresoLogros['Misiones '+dif+'es']||0)+1;
