@@ -371,7 +371,6 @@
         let misionEditandoId = null; let usuarioAjustandoPuntos = null; let logroEditandoId = null; let usuarioEditandoLogros = null;
 
         function obtenerInicioSemana() {
-            // HUSO HORARIO UNIVERSAL (UTC)
             const ahora = new Date(); 
             const dia = ahora.getUTCDay() || 7; 
             ahora.setUTCHours(0, 0, 0, 0); 
@@ -449,8 +448,6 @@
                     }
                 }
 
-                // --- REVISIÓN GLOBAL DE USUARIOS Y SELLOS DE TIEMPO ---
-                let modificado = false;
                 for (let u of usuariosDB) {
                     let necesitaGuardar = false;
 
@@ -846,7 +843,7 @@
             cargarTablaSeguimiento();
         }
 
-        // --- EL NUEVO SISTEMA DE CANSANCIO GLOBAL Y SELLOS DE TIEMPO ---
+        // --- EL NUEVO SISTEMA DINÁMICO DE HISTORIAL DE MISIONES ---
         async function completarMisionAventurero(nom) {
             if (!confirm(`Confirmar completar misión a ${nom}?`)) return;
             let usuarios = JSON.parse(localStorage.getItem('gremio_usuarios')); let idx = usuarios.findIndex(u => u.nombre === nom); if (idx === -1) return;
@@ -873,8 +870,16 @@
             if (!user.historialMisiones[dif]) user.historialMisiones[dif] = [];
             user.historialMisiones[dif].push(user.misionActiva.id);
             
-            // LA CORRECCIÓN: Un tope de 5 en la memoria para que al hacer la 6ª se libere la 1ª
-            if (user.historialMisiones[dif].length > (dif==='Épica'?2:5)) user.historialMisiones[dif].shift();
+            // --- PARCHE DE SEGURIDAD ANTIBLOQUEOS ---
+            let misionesActivas = JSON.parse(localStorage.getItem('gremio_misiones')) || [];
+            let misionesDeEsteTipo = misionesActivas.filter(m => m.dificultad === dif).length;
+            let maximoIdeal = dif === 'Épica' ? 2 : 5;
+            // Si hay pocas misiones creadas, ajustamos el límite para que no se bloqueen jamás
+            let limiteReal = Math.min(maximoIdeal, Math.max(0, misionesDeEsteTipo - 1));
+
+            while(user.historialMisiones[dif].length > limiteReal) {
+                user.historialMisiones[dif].shift();
+            }
 
             if (!user.progresoLogros) user.progresoLogros = {};
             user.progresoLogros['Misiones Totales'] = (user.progresoLogros['Misiones Totales']||0)+1; user.progresoLogros['Misiones '+dif+'es'] = (user.progresoLogros['Misiones '+dif+'es']||0)+1;
@@ -926,7 +931,13 @@
                 let faltanMinutos = Math.ceil((sesion.cooldownsMisiones[m.dificultad] - Date.now()) / 60000);
                 return alert(`Estás exhausto. Necesitas descansar aproximadamente ${faltanMinutos} minutos antes de volver a la carga.`);
             }
-            if (sesion.historialMisiones && sesion.historialMisiones[m.dificultad] && sesion.historialMisiones[m.dificultad].includes(m.id)) return alert(`Recientemente hiciste este encargo exacto. Deja algo para el resto.`);
+            
+            // Verificamos de nuevo dinámicamente para la aceptación
+            let countDif = misiones.filter(mis => mis.dificultad === m.dificultad).length;
+            let limiteReal = Math.min(m.dificultad === 'Épica' ? 2 : 5, Math.max(0, countDif - 1));
+            let histReciente = (sesion.historialMisiones && sesion.historialMisiones[m.dificultad]) ? sesion.historialMisiones[m.dificultad].slice(-limiteReal) : [];
+            
+            if (histReciente.includes(m.id)) return alert(`Recientemente hiciste este encargo exacto. Deja algo para el resto.`);
             
             sesion.misionActiva = { id: m.id, titulo: m.titulo, recompensa: m.recompensa, dificultad: m.dificultad, descripcion: m.descripcion };
             await actualizarUsuarioStorage(sesion); cargarMisiones();
@@ -942,7 +953,7 @@
             await nubeGuardarUsuario(ses);
         }
 
-        // --- SISTEMA DE TABLÓN ORDENADO ---
+        // --- SISTEMA DE TABLÓN ORDENADO Y BLINDADO ---
         function cargarMisiones() {
             let misiones = JSON.parse(localStorage.getItem('gremio_misiones')) || []; 
             let sesion = JSON.parse(localStorage.getItem('gremio_sesion_actual'));
@@ -960,6 +971,21 @@
                 return b.id - a.id; 
             });
 
+            // Contar misiones por dificultad para el historial seguro
+            let countDif = { 'Fácil': 0, 'Media': 0, 'Difícil': 0, 'Épica': 0 };
+            misiones.forEach(m => countDif[m.dificultad] = (countDif[m.dificultad]||0) + 1);
+
+            let histValido = {'Fácil':[], 'Media':[], 'Difícil':[], 'Épica':[]};
+            if (sesion && sesion.historialMisiones) {
+                ['Fácil', 'Media', 'Difícil', 'Épica'].forEach(d => {
+                   if (sesion.historialMisiones[d]) {
+                       let maxH = d === 'Épica' ? 2 : 5;
+                       let lim = Math.min(maxH, Math.max(0, countDif[d] - 1));
+                       histValido[d] = sesion.historialMisiones[d].slice(-lim); 
+                   }
+                });
+            }
+
             misionesOrdenadas.forEach(m => {
                 let colDif = m.dificultad==='Media'?'text-yellow-400':m.dificultad==='Difícil'?'text-orange-500':m.dificultad==='Épica'?'text-red-500 font-bold drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]':'text-green-400';
                 let btnAdm = esAdmin ? `<div class="absolute top-3 right-3 flex gap-3 z-10"><button onclick="abrirModalEditarMision(${m.id})" class="text-blue-500 bg-black/50 p-1.5 rounded hover:text-blue-400 transition"><i class="fa-solid fa-pen"></i></button><button onclick="eliminarMision(${m.id})" class="text-red-600 bg-black/50 p-1.5 rounded hover:text-red-400 transition"><i class="fa-solid fa-trash"></i></button></div>` : '';
@@ -969,7 +995,9 @@
                     let r = sesion.cooldownsMisiones[m.dificultad] - Date.now();
                     if (r > 0) { enCool = true; let h = Math.floor(r/3600000); let mi = Math.ceil((r%3600000)/60000); tRes = h>0?`${h}h ${mi}m`:`${mi}m`; }
                 }
-                let enHist = sesion && sesion.historialMisiones && sesion.historialMisiones[m.dificultad] && sesion.historialMisiones[m.dificultad].includes(m.id);
+                
+                // Usamos el historial seguro para saber si bloquearla
+                let enHist = sesion && histValido[m.dificultad] && histValido[m.dificultad].includes(m.id);
                 
                 let btnAcc = '';
                 if (sesion && sesion.misionActiva && sesion.misionActiva.id === m.id) btnAcc = `<button onclick="abandonarMision()" class="px-3 py-1.5 bg-red-900/60 border border-red-700 text-red-400 rounded text-xs font-bold uppercase hover:bg-red-800/80 transition shadow-[0_0_8px_rgba(239,68,68,0.4)]"><i class="fa-solid fa-xmark mr-1"></i>Abandonar</button>`;
@@ -995,7 +1023,7 @@
 
         function cargarRankingGlobal() {
             let uc = JSON.parse(localStorage.getItem('gremio_usuarios')||'[]')
-                .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN')
+                .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN' && parseInt(u.puntos||0, 10) > 0)
                 .sort((a,b) => {
                     let ptsA = parseInt(a.puntos)||0;
                     let ptsB = parseInt(b.puntos)||0;
@@ -1011,7 +1039,7 @@
 
         function cargarRankingSemanal() {
             let uc = JSON.parse(localStorage.getItem('gremio_usuarios')||'[]')
-                .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN')
+                .filter(u => u.rol !== 'ADMIN' && u.nombre !== 'ADMIN' && parseInt(u.puntosSemanales||0, 10) > 0)
                 .sort((a,b) => {
                     let ptsA = parseInt(a.puntosSemanales)||0;
                     let ptsB = parseInt(b.puntosSemanales)||0;
